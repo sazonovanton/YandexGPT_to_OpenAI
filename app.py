@@ -3,7 +3,7 @@
 Simple translator from OpenAI API calls to YandexGPT/YandexART API calls
 """
 
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from pydantic import BaseModel
@@ -57,6 +57,13 @@ class ChatCompletions(BaseModel):
     temperature: float = 0.7
     messages: list
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
+
 @app.post("/chat/completions")
 async def chat_completions(chat_completions: ChatCompletions, user_id: str = Depends(authenticate_user)):
     logger.info(f"* User `{user_id}` requested chat completions via `{chat_completions.model}`")
@@ -80,6 +87,7 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             if response.status != 200:
+                logger.error(f"* User `{user_id}` received error: {response.status} - {await response.text()}")
                 raise HTTPException(status_code=response.status, detail=await response.text())
             response_data = await response.json()
             response_data = await chat_completion_translation(response_data, user_id, chat_completions.model)
@@ -87,6 +95,7 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
             logger.debug(f"** Response: {response_data['choices']}")
             return JSONResponse(content=response_data, media_type="application/json")
         
+
 if __name__ == "__main__":
     import uvicorn
     # Check certs

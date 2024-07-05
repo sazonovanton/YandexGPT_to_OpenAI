@@ -8,6 +8,7 @@ Miscellaneous functions for the project
 import time
 import os
 import json
+import hashlib
 
 def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512, backup_count: int = 3) -> None:
     """
@@ -76,9 +77,10 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
         }
         alternatives = chat_completion["result"]["alternatives"] # List of alternatives from YandexGPT
         choices = [] # List of choices for OpenAI
+        i = 0
         for choice in alternatives:
             new_choice = {
-                "index": 0,
+                "index": i,
                 "message": {
                     "role": choice["message"]["role"],
                     "content": choice["message"]["text"]
@@ -86,21 +88,22 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
                 "logprobs": None,
                 "finish_reason": finish_reasons[choice["status"]]
             }
+            i += 1
             choices.append(new_choice)
-
+        userhash = hashlib.md5(user_id.encode()).hexdigest()
         current_time = int(time.time())
         new_chat_completion = {
-            "id": f"o2y-u{user_id}-{current_time}",
+            "id": f"o2y-{userhash}{current_time}",
+            "model": f"{model}-{chat_completion['result']['modelVersion'].replace('.', '-')}",
             "object": "chat.completion",
             "created": int(current_time),
-            "model": f"{model}-{chat_completion['result']['modelVersion'].replace('.', '')}",
-            # "system_fingerprint": f"fp_{user_id}",
             "choices": choices,
             "usage": {
-                "prompt_tokens": chat_completion['result']['usage']['inputTextTokens'], 
-                "completion_tokens": chat_completion['result']['usage']['completionTokens'], 
-                "total_tokens": chat_completion['result']['usage']['totalTokens']
-            }
+                "prompt_tokens": int(chat_completion['result']['usage']['inputTextTokens']),
+                "completion_tokens": int(chat_completion['result']['usage']['completionTokens']),
+                "total_tokens": int(chat_completion['result']['usage']['totalTokens'])
+            },
+            "system_fingerprint": f"fp_{userhash}"
         }
         return new_chat_completion
     except KeyboardInterrupt:
