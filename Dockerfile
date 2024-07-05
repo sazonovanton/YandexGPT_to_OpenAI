@@ -1,7 +1,7 @@
-#################################################
-#         Dockerfile to run TaleTicker          #
-#           Based on an Python Image            #
-#################################################
+####################################################################
+#         Dockerfile to run OpenAI to YandexGPT Translator         #
+#                    Based on an Python Image                      #
+####################################################################
 
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim-buster
