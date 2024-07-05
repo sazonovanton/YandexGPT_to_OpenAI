@@ -7,6 +7,7 @@ Miscellaneous functions for the project
 """
 import time
 import os
+import json
 
 def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512, backup_count: int = 3) -> None:
     """

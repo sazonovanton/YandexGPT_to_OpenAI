@@ -9,6 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from pydantic import BaseModel
 import aiohttp
 import os
+import json
 
 from utils.misc import messages_translation, chat_completion_translation, setup_logging
 from utils.tokens import get_tokens
@@ -84,14 +85,14 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
             response_data = await chat_completion_translation(response_data, user_id, chat_completions.model)
             logger.info(f"* User `{user_id}` received chat completions (id: `{response_data['id']}`). Tokens used (prompt/completion/total): {response_data['usage']['prompt_tokens']}/{response_data['usage']['completion_tokens']}/{response_data['usage']['total_tokens']}")
             logger.debug(f"** Response: {response_data['choices']}")
-            return JSONResponse(content=response_data)
+            return JSONResponse(content=response_data, media_type="application/json")
         
 if __name__ == "__main__":
     import uvicorn
     # Check certs
     if os.path.exists("certs/private.key") and os.path.exists("certs/cert.pem") and os.getenv('O2Y_SSL', 'False').lower() == 'true':
         logger.info("SSL keys found, starting server with SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '127.0.0.1'), port=int(os.getenv('O2Y_Port', 8000)), ssl_keyfile="certs/private.key", ssl_certfile="certs/cert.pem")
+        uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)), ssl_keyfile="certs/private.key", ssl_certfile="certs/cert.pem")
     else:
         logger.info("Starting server without SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '127.0.0.1'), port=int(os.getenv('O2Y_Port', 8000)))
+        uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)))
