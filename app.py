@@ -90,9 +90,9 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
 if __name__ == "__main__":
     import uvicorn
     # Check certs
-    if os.path.exists("certs/private.key") and os.path.exists("certs/cert.pem") and os.getenv('O2Y_SSL', 'False').lower() == 'true':
+    if os.getenv('O2Y_SSL_Key') and os.getenv('O2Y_SSL_Cert'):
         logger.info("SSL keys found, starting server with SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)), ssl_keyfile="certs/private.key", ssl_certfile="certs/cert.pem")
+        uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)), ssl_keyfile=os.getenv('O2Y_SSL_Key'), ssl_certfile=os.getenv('O2Y_SSL_Cert'))
     else:
         logger.info("Starting server without SSL")
         uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)))

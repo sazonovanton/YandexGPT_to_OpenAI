@@ -14,11 +14,15 @@ O2Y_SecretKey=***
 O2Y_CatalogID=***
 O2Y_Host=127.0.0.1
 O2Y_Port=8000
-O2Y_SSL=False
 O2Y_LogFile=logs/o2y.log
 O2Y_LogLevel=INFO
 ```
-Here are default values, only `O2Y_SecretKey` and `O2Y_CatalogID` are required, others are optional.
+Here are default values, only `O2Y_SecretKey` and `O2Y_CatalogID` are required, others are optional.  
+If you want to use SSL, you can set paths to the SSL key and certificate files:  
+```bash
+O2Y_SSL_Key=ssl/private.key
+O2Y_SSL_Cert=ssl/cert.pem
+```
 4. Run the API
 ```bash
 python main.py
