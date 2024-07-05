@@ -1,0 +1,29 @@
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Distribution directories
+dist/
+build/
+*.egg-info/
+
+# Virtual environment directories
+venv/
+env/
+*.venv/
+*.env/
+
+# IDE files
+.idea/
+.vscode/
+
+# Miscellaneous files
+.DS_Store
+.pytest_cache/
+*.log
+*.log.*
+test.py
+
+# IMPORTANT
+.env
+tokens.json
