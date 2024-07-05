@@ -5,12 +5,10 @@ Simple translator from OpenAI API calls to YandexGPT/YandexART API calls
 
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from pydantic import BaseModel
 import aiohttp
 import os
-import json
-import hashlib
 
 from utils.misc import messages_translation, chat_completion_translation, setup_logging
 from utils.tokens import get_tokens
