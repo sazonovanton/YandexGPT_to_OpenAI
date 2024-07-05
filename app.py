@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Check certs
     if os.path.exists("certs/private.key") and os.path.exists("certs/cert.pem") and os.getenv('O2Y_SSL', 'False').lower() == 'true':
         logger.info("SSL keys found, starting server with SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '127.0.0.1'), port=os.getenv('O2Y_Port', 8000), ssl_keyfile="certs/private.key", ssl_certfile="certs/cert.pem")
+        uvicorn.run(app, host=os.getenv('O2Y_Host', '127.0.0.1'), port=int(os.getenv('O2Y_Port', 8000)), ssl_keyfile="certs/private.key", ssl_certfile="certs/cert.pem")
     else:
         logger.info("Starting server without SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '127.0.0.1'), port=os.getenv('O2Y_Port', 8000))
+        uvicorn.run(app, host=os.getenv('O2Y_Host', '127.0.0.1'), port=int(os.getenv('O2Y_Port', 8000)))
