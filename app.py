@@ -59,6 +59,7 @@ class ChatCompletions(BaseModel):
 @app.post("/chat/completions")
 async def chat_completions(chat_completions: ChatCompletions, user_id: str = Depends(authenticate_user)):
     logger.info(f"* User `{user_id}` requested chat completions via `{chat_completions.model}`")
+    logger.debug(f"** Messages: {chat_completions.messages}")
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
         "Content-Type": "application/json",
@@ -82,6 +83,7 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
             response_data = await response.json()
             response_data = await chat_completion_translation(response_data, user_id, chat_completions.model)
             logger.info(f"* User `{user_id}` received chat completions (id: `{response_data['id']}`). Tokens used (prompt/completion/total): {response_data['usage']['prompt_tokens']}/{response_data['usage']['completion_tokens']}/{response_data['usage']['total_tokens']}")
+            logger.debug(f"** Response: {response_data['choices']}")
             return JSONResponse(content=response_data)
         
 if __name__ == "__main__":

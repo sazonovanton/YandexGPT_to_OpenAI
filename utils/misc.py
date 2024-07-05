@@ -87,12 +87,13 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
             }
             choices.append(new_choice)
 
+        current_time = int(time.time())
         new_chat_completion = {
-            "id": f"o2y-u{user_id}-{int(time.time())}",
+            "id": f"o2y-u{user_id}-{current_time}",
             "object": "chat.completion",
-            "created": int(time.time()),
+            "created": int(current_time),
             "model": f"{model}-{chat_completion['result']['modelVersion'].replace('.', '')}",
-            "system_fingerprint": f"fp_{user_id}",
+            # "system_fingerprint": f"fp_{user_id}",
             "choices": choices,
             "usage": {
                 "prompt_tokens": chat_completion['result']['usage']['inputTextTokens'], 

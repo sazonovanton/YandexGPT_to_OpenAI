@@ -27,3 +27,7 @@ test.py
 # IMPORTANT
 .env
 tokens.json
+
+# CERTS
+certs/*
+cert.py
