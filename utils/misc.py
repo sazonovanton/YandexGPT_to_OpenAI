@@ -9,6 +9,7 @@ import time
 import os
 import json
 import hashlib
+import datetime
 
 def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512, backup_count: int = 3) -> None:
     """
@@ -110,3 +111,15 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
         raise KeyboardInterrupt
     except Exception as e:
         raise Exception(f'Error in chat_completion_translation: {e}')
+    
+async def get_headers(response):
+    """
+    Get headers from response
+    """
+    new_headers = {
+        "Date": f"{datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')}",
+        "Transfer-Encoding": "chunked",
+        "Content-Type": "application/json",
+        "Connection": "keep-alive",
+    }
+    return new_headers

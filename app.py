@@ -11,7 +11,7 @@ import aiohttp
 import os
 import json
 
-from utils.misc import messages_translation, chat_completion_translation, setup_logging
+from utils.misc import messages_translation, chat_completion_translation, setup_logging, get_headers
 from utils.tokens import get_tokens
 
 from dotenv import load_dotenv
@@ -64,9 +64,11 @@ async def log_requests(request: Request, call_next):
     logger.info(f"Response status: {response.status_code}")
     return response
 
+@app.post("/v1/chat/completions")
 @app.post("/chat/completions")
 async def chat_completions(chat_completions: ChatCompletions, user_id: str = Depends(authenticate_user)):
     logger.info(f"* User `{user_id}` requested chat completions via `{chat_completions.model}`")
+    logger.debug(f"** Headers:\n{chat_completions.headers}\n")
     logger.debug(f"** Messages: {chat_completions.messages}")
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
@@ -93,8 +95,54 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
             response_data = await chat_completion_translation(response_data, user_id, chat_completions.model)
             logger.info(f"* User `{user_id}` received chat completions (id: `{response_data['id']}`). Tokens used (prompt/completion/total): {response_data['usage']['prompt_tokens']}/{response_data['usage']['completion_tokens']}/{response_data['usage']['total_tokens']}")
             logger.debug(f"** Response: {response_data['choices']}")
-            return JSONResponse(content=response_data, media_type="application/json")
-        
+            return JSONResponse(content=response_data, media_type="application/json", headers=await get_headers(response))
+
+@app.post("/v1/models")
+@app.post("/models")
+async def models_list(user_id: str = Depends(authenticate_user)):
+    logger.info(f"* User `{user_id}` requested models list")
+    url = "https://llm.api.cloud.yandex.net/foundationModels/v1/models"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Api-Key {SECRETKEY}"
+    }
+    models = {
+        "object": "list",
+        "data": [
+                {
+                "id": "yandexgpt/latest",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "yandex"
+                },
+                {
+                "id": "yandexgpt-lite/rc",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "yandex"
+                },
+                {
+                "id": "yandexgpt-lite/latest",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "yandex"
+                },
+                {
+                "id": "yandexgpt-lite/deprecated",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "yandex"
+                }
+            ],
+            "object": "list"
+        }
+    # send response
+    logger.info(f"* User `{user_id}` received models list")
+    return JSONResponse(content=models, media_type="application/json")
+
+@app.get("/v1/health")
+async def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
