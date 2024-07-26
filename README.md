@@ -85,6 +85,6 @@ chat_completion = client.chat.completions.create(
 ✅ Streaming  
 ⬜ Vision (not supported yet)  
 ⬜ Tools (not supported yet)
-* [Embeddings](https://platform.openai.com/docs/api-reference/embeddings) translates to [Embeddings.textEmbedding](https://yandex.cloud/en/docs/foundation-models/embeddings/api-ref/Embeddings/textEmbedding) (_not fully tested_)
-✅ float 
-✅ base64
+* [Embeddings](https://platform.openai.com/docs/api-reference/embeddings) translates to [Embeddings.textEmbedding](https://yandex.cloud/en/docs/foundation-models/embeddings/api-ref/Embeddings/textEmbedding) (_not fully tested_)  
+✅ float   
+✅ base64  
