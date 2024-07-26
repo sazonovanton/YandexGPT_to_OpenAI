@@ -1,8 +1,12 @@
 # YandexGPT API to OpenAI API translator
-This is a simple API that translates OpenAI API requests to YandexGPT API requests.  
-It is useful for those who have a tool that expects OpenAI (like) API requests, but want to use YandexGPT API instead.  
+This is a simple API server that translates OpenAI API requests to YandexGPT API requests.  
+It is useful for those who have a tool that expects OpenAI (like) API usage, but want to use YandexGPT API.  
+
+## How it works
+The API server listens for OpenAI API requests and translates them to YandexGPT API requests. Then it sends the request to the YandexGPT API and returns translated response to the client.  
 
 ## How to use
+### Setup
 1. Clone this repository
 2. Install the requirements
 ```bash
@@ -31,11 +35,53 @@ python utils/tokens.py
 ```bash
 python app.py
 ```
-6. Use the API by setting `openai.base_url` to `http://<your_host>:<your_port>` 
+6. Use the API by setting `openai.base_url` to `http://<your_host>:<your_port>/v1` 
 
-## How it works
-The API listens for OpenAI API requests and translates them to YandexGPT API requests. Then it sends the request to the YandexGPT API and returns translated response to the client.  
+### Usage
+
+#### cURL example
+```bash
+curl http://<your_host>:<your_port>/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "model": "yandexgpt/latest",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Hello!"
+      }
+    ]
+  }'
+```
+
+#### Python example
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("TOKEN"),
+    base_url="http://<your_host>:<your_port>/v1",
+)
+chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+            "content": "Say this is a test",
+        }
+    ],
+    model="yandexgpt/latest",
+)
+```
 
 ## What is implemented
 ### /chat/completions 
-* [Chat completions](https://platform.openai.com/docs/api-reference/chat/create) translates to [TextGeneration.completion](https://yandex.cloud/ru/docs/foundation-models/text-generation/api-ref/TextGeneration/completion) (streaming is supported)
+* [Chat completions](https://platform.openai.com/docs/api-reference/chat/create) translates to [TextGeneration.completion](https://yandex.cloud/en/docs/foundation-models/text-generation/api-ref/TextGeneration/completion)  
+✅ Streaming  
+⬜ Vision (not supported by YandexGPT API)  
+⬜ Tools (not supported by YandexGPT API)
