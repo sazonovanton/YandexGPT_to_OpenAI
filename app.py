@@ -68,7 +68,6 @@ async def log_requests(request: Request, call_next):
 async def chat_completions(chat_completions: ChatCompletions, user_id: str = Depends(authenticate_user)):
     logger.info(f"* User `{user_id}` requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
     if chat_completions.stream:
-        # return StreamingResponse(stream_chat_completions(chat_completions, user_id), media_type="application/json")
         return StreamingResponse(stream_chat_completions(chat_completions, user_id), media_type="text/event-stream")
     else:
         return await non_stream_chat_completions(chat_completions, user_id)
