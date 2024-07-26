@@ -90,4 +90,4 @@ chat_completion = client.chat.completions.create(
 * ✅ float   
 * ✅ base64  
 ### /models
-[Models](https://platform.openai.com/docs/api-reference/models) translates to list of [Yandex Foundation models](Yandex Foundation Models) (_can be incomplete_)
+[Models](https://platform.openai.com/docs/api-reference/models) translates to list of [Yandex Foundation models](https://yandex.cloud/en/docs/foundation-models/concepts/) (_can be incomplete_)
