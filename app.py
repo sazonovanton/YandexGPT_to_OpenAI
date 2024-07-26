@@ -15,20 +15,20 @@ from utils.tokens import get_tokens
 
 load_dotenv()
 
-logger = setup_logging(os.getenv('O2Y_LogFile', './logs/o2y.log'), os.getenv('O2Y_LogLevel', 'INFO').upper())
+logger = setup_logging(os.getenv('Y2O_LogFile', './logs/y2o.log'), os.getenv('Y2O_LogLevel', 'INFO').upper())
 
 # Yandex API settings 
-SECRETKEY = os.getenv('O2Y_SecretKey')
-CATALOGID = os.getenv('O2Y_CatalogID')
+SECRETKEY = os.getenv('Y2O_SecretKey')
+CATALOGID = os.getenv('Y2O_CatalogID')
 
 tokens = get_tokens()
 logger.info(f"Loaded tokens: {tokens}")
 
-print("=== OpenAI to YandexGPT API translator ===")
-logger.info(f"=== OpenAI to YandexGPT API translator: Starting server (tokens: {len(tokens)}) ===")
+print("=== YandexGPT to OpenAI API translator ===")
+logger.info(f"=== YandexGPT to OpenAI API translator: Starting server (tokens: {len(tokens)}) ===")
 
 # API settings
-app = FastAPI(docs_url=None, redoc_url=None, title="OpenAI to YandexGPT API translator", description="Simple translator from OpenAI API calls to YandexGPT/YandexART API calls")
+app = FastAPI(docs_url=None, redoc_url=None, title="YandexGPT to OpenAI API translator", description="Simple translator from OpenAI API calls to YandexGPT/YandexART API calls")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def authenticate_user(token: str = Depends(oauth2_scheme)):
@@ -203,9 +203,9 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    if os.getenv('O2Y_SSL_Key') and os.getenv('O2Y_SSL_Cert'):
+    if os.getenv('Y2O_SSL_Key') and os.getenv('Y2O_SSL_Cert'):
         logger.info("SSL keys found, starting server with SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)), ssl_keyfile=os.getenv('O2Y_SSL_Key'), ssl_certfile=os.getenv('O2Y_SSL_Cert'))
+        uvicorn.run(app, host=os.getenv('Y2O_Host', '0.0.0.0'), port=int(os.getenv('Y2O_Port', 8000)), ssl_keyfile=os.getenv('Y2O_SSL_Key'), ssl_certfile=os.getenv('Y2O_SSL_Cert'))
     else:
         logger.info("Starting server without SSL")
-        uvicorn.run(app, host=os.getenv('O2Y_Host', '0.0.0.0'), port=int(os.getenv('O2Y_Port', 8000)))
+        uvicorn.run(app, host=os.getenv('Y2O_Host', '0.0.0.0'), port=int(os.getenv('Y2O_Port', 8000)))

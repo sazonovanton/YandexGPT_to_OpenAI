@@ -53,7 +53,7 @@ def generate_tokens(number, interactive=False):
         # Generate new tokens and append them to the tokens file
         for i in range(number):
             token = str(uuid.uuid4())
-            token = f'sk-o2y-{token}'
+            token = f'sk-y2o-{token}'
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             tokens_json[len(tokens_json)+1] = {
                 "token": token,

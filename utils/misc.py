@@ -2,7 +2,7 @@
 """
 Miscellaneous functions for the project
 
-- messages_translation: Translate messages from OpenAI to YandexGPT format
+- messages_translation: Translate messages from YandexGPT to OpenAI  format
 - chat_completion_translation: Translate chat completion from YandexGPT to OpenAI format
 """
 import time
@@ -37,7 +37,7 @@ def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512,
 
 async def messages_translation(messages: list):
     """
-    Translate messages from OpenAI to YandexGPT format
+    Translate messages from YandexGPT to OpenAI  format
     Input:
     - messages: list
     Output:
@@ -59,7 +59,7 @@ async def messages_translation(messages: list):
     
 async def finish_reason_translation(finish_reason):
     """
-    Translate finish reason from OpenAI to YandexGPT format
+    Translate finish reason from YandexGPT to OpenAI  format
     Input:
     - finish_reason: str
     Output:
@@ -119,7 +119,7 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
         userhash = hashlib.md5(user_id.encode()).hexdigest()
         current_time = int(time.time())
         new_chat_completion = {
-            "id": f"o2y-{userhash}{current_time}",
+            "id": f"y2o-{userhash}{current_time}",
             "model": f"{model}-{chat_completion['result']['modelVersion'].replace('.', '-')}",
             "object": "chat.completion",
             "created": int(current_time),
@@ -171,7 +171,7 @@ async def chat_completion_chunk_translation(chunk: dict, deltatext: str, user_id
         userhash = hashlib.md5(user_id.encode()).hexdigest()
         current_time = int(timestamp)
         new_chat_chunk_completion = {
-            "id": f"o2y-{userhash}{current_time}",
+            "id": f"y2o-{userhash}{current_time}",
             "model": f"{model}-{chunk['result']['modelVersion'].replace('.', '-')}",
             "object": "chat.completion.chunk",
             "created": current_time,

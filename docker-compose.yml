@@ -1,14 +1,14 @@
 services:
-  o2y:
+  y2o:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: o2y
+    container_name: y2o
     environment:
-      - O2Y_SecretKey=your_secret_key
-      - O2Y_CatalogID=your_catalog_id
-      - O2Y_LogFile=logs/o2y.log
-      - O2Y_LogLevel=DEBUG
+      - Y2O_SecretKey=your_secret_key
+      - Y2O_CatalogID=your_catalog_id
+      - Y2O_LogFile=logs/y2o.log
+      - Y2O_LogLevel=DEBUG
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
