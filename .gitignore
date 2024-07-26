@@ -22,7 +22,7 @@ env/
 .pytest_cache/
 *.log
 *.log.*
-test.py
+*test.py
 
 # IMPORTANT
 .env

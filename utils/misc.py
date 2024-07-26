@@ -57,6 +57,39 @@ async def messages_translation(messages: list):
     except Exception as e:
         raise Exception(f'Error in messages_translation: {e}')
     
+async def finish_reason_translation(finish_reason):
+    """
+    Translate finish reason from OpenAI to YandexGPT format
+    Input:
+    - finish_reason: str
+    Output:
+    - new_finish_reason: str
+    """
+    try:
+        # finish_reasons = {
+        #     "stop": "ALTERNATIVE_STATUS_FINAL",
+        #     "length": "ALTERNATIVE_STATUS_TRUNCATED_FINAL",
+        #     "content_filter": "ALTERNATIVE_STATUS_CONTENT_FILTER",
+        #     "incomplete": "ALTERNATIVE_STATUS_PARTIAL",
+        #     "unknown": "ALTERNATIVE_STATUS_UNSPECIFIED",
+        #     "tool_calls": "ALTERNATIVE_STATUS_TOOLS" # Not implemented in YandexGPT, just placeholder
+        # }
+        finish_reasons = {
+            "ALTERNATIVE_STATUS_FINAL": "stop",
+            "ALTERNATIVE_STATUS_TRUNCATED_FINAL": "length",
+            "ALTERNATIVE_STATUS_CONTENT_FILTER": "content_filter",
+            # "ALTERNATIVE_STATUS_PARTIAL": "incomplete",
+            "ALTERNATIVE_STATUS_PARTIAL": None,
+            "ALTERNATIVE_STATUS_UNSPECIFIED": "unknown",
+            "ALTERNATIVE_STATUS_TOOLS": "tool_calls" # Not implemented in YandexGPT, just placeholder
+        }
+        new_finish_reason = finish_reasons[finish_reason]
+        return new_finish_reason
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
+    except Exception as e:
+        raise Exception(f'Error in finish_reason_translation: {e}')
+    
 async def chat_completion_translation(chat_completion: dict, user_id: str, model: str):
     """
     Translate chat completion from YandexGPT to OpenAI format
@@ -68,14 +101,6 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
     - new_chat_completion: dict
     """
     try:
-        finish_reasons = {
-            "ALTERNATIVE_STATUS_FINAL": "stop",
-            "ALTERNATIVE_STATUS_TRUNCATED_FINAL": "length",
-            "ALTERNATIVE_STATUS_CONTENT_FILTER": "content_filter",
-            "ALTERNATIVE_STATUS_PARTIAL": "incomplete",
-            "ALTERNATIVE_STATUS_UNSPECIFIED": "unknown",
-            "ALTERNATIVE_STATUS_TOOLS": "tool_calls" # Not implemented in YandexGPT, just placeholder
-        }
         alternatives = chat_completion["result"]["alternatives"] # List of alternatives from YandexGPT
         choices = [] # List of choices for OpenAI
         i = 0
@@ -87,7 +112,7 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
                     "content": choice["message"]["text"]
                 },
                 "logprobs": None,
-                "finish_reason": finish_reasons[choice["status"]]
+                "finish_reason": await finish_reason_translation(choice["status"])
             }
             i += 1
             choices.append(new_choice)
@@ -112,3 +137,49 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
     except Exception as e:
         raise Exception(f'Error in chat_completion_translation: {e}')
     
+async def chat_completion_chunk_translation(chunk: dict, deltatext: str, user_id: str, model: str, timestamp: int):
+    """
+    Translate chat completion chunk from YandexGPT to OpenAI format
+
+    Input:
+    - chunk: dict
+    - user_id: str
+    - model: str
+    - timestamp: int
+    Output:
+    - new_chat_chunk_completion: dict
+    """
+    try:
+        choice = chunk["result"]["alternatives"][0]
+        choices = [] # List of choices for OpenAI
+        i = 0
+
+        delta = {}
+        # if choice["message"]["role"] and deltatext == "":
+        #     delta["role"] = choice["message"]["role"]
+        delta["content"] = deltatext
+        delta["role"] = choice["message"]["role"]
+        new_choice = {
+            "index": i,
+            "delta": delta,
+            "logprobs": None,
+            "finish_reason": await finish_reason_translation(choice["status"])
+        }
+        # i += 1
+        choices.append(new_choice)
+
+        userhash = hashlib.md5(user_id.encode()).hexdigest()
+        current_time = int(timestamp)
+        new_chat_chunk_completion = {
+            "id": f"o2y-{userhash}{current_time}",
+            "model": f"{model}-{chunk['result']['modelVersion'].replace('.', '-')}",
+            "object": "chat.completion.chunk",
+            "created": current_time,
+            "choices": choices,
+            "system_fingerprint": f"fp_{userhash}"
+        }
+        return new_chat_chunk_completion
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
+    except Exception as e:
+        raise Exception(f'Error in chat_completion_chunk_translation: {e}')

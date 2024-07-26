@@ -1,16 +1,18 @@
 from fastapi import FastAPI, HTTPException, status, Depends, Request
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
+from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 import aiohttp
 import os
 import json
 from datetime import datetime
+from dotenv import load_dotenv
+import logging
+import time
 
-from utils.misc import messages_translation, chat_completion_translation, setup_logging, get_headers
+from utils.misc import messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation
 from utils.tokens import get_tokens
 
-from dotenv import load_dotenv
 load_dotenv()
 
 logger = setup_logging(os.getenv('O2Y_LogFile', './logs/o2y.log'), os.getenv('O2Y_LogLevel', 'INFO').upper())
@@ -48,6 +50,7 @@ class ChatCompletions(BaseModel):
     max_tokens: int = None
     temperature: float = 0.7
     messages: list
+    stream: bool = False
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -63,7 +66,61 @@ async def log_requests(request: Request, call_next):
 @app.post("/v1/chat/completions")
 @app.post("/chat/completions")
 async def chat_completions(chat_completions: ChatCompletions, user_id: str = Depends(authenticate_user)):
-    logger.info(f"* User `{user_id}` requested chat completions via `{chat_completions.model}`")
+    logger.info(f"* User `{user_id}` requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
+    if chat_completions.stream:
+        # return StreamingResponse(stream_chat_completions(chat_completions, user_id), media_type="application/json")
+        return StreamingResponse(stream_chat_completions(chat_completions, user_id), media_type="text/event-stream")
+    else:
+        return await non_stream_chat_completions(chat_completions, user_id)
+
+async def stream_chat_completions(chat_completions: ChatCompletions, user_id: str):
+    logger.debug(f"** Authorization Token: {user_id}")
+
+    model = chat_completions.model
+    if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
+        model = "yandexgpt-lite/latest"
+
+    url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Api-Key {SECRETKEY}",
+        "x-folder-id": CATALOGID,
+        "x-data-logging-enabled": "false"
+    }
+    data = {
+        "modelUri": f"gpt://{CATALOGID}/{model}",
+        "completionOptions": {
+            "stream": True,
+            "temperature": chat_completions.temperature,
+            "maxTokens": chat_completions.max_tokens
+        },
+        "messages": await messages_translation(chat_completions.messages)
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            if response.status != 200:
+                logger.error(f"* User `{user_id}` received error: {response.status} - {await response.text()}")
+                raise HTTPException(status_code=response.status, detail=await response.text())
+            now = time.time()
+            i = 0
+            str_index = 0
+            async for chunk in response.content.iter_any():
+                if chunk:
+                    chunk_text = chunk.decode('utf-8')
+                    try:
+                        data = json.loads(chunk_text)
+                        deltatext = data['result']['alternatives'][0]['message']['text'][str_index:]
+                        str_index = len(data['result']['alternatives'][0]['message']['text'])
+                        new_chunk = await chat_completion_chunk_translation(data, deltatext, user_id, model, timestamp=now)
+                        logger.info(f"* User `{user_id}` received chat completion chunk (id: `{new_chunk['id']}`).")
+                        logger.debug(f"** Response: {new_chunk['choices']}")
+                        # yield json.dumps(new_chunk)
+                        yield f"data: {json.dumps(new_chunk)}\n\n"
+                    except json.JSONDecodeError:
+                        # Handle chunk that might not be complete JSON
+                        pass
+
+async def non_stream_chat_completions(chat_completions: ChatCompletions, user_id: str):
     logger.debug(f"** Authorization Token: {user_id}")
 
     model = chat_completions.model
@@ -100,7 +157,8 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
                 "Content-Type": "application/json",
                 "Connection": "keep-alive",
             }
-            return JSONResponse(content=response_data, media_type="application/json", headers=new_headers)
+            return JSONResponse(content=response_data, headers=new_headers)
+
 
 @app.get("/v1/models")
 @app.get("/models")
