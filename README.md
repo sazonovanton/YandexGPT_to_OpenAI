@@ -23,11 +23,15 @@ If you want to use SSL, you can set paths to the SSL key and certificate files:
 Y2O_SSL_Key=ssl/private.key
 Y2O_SSL_Cert=ssl/cert.pem
 ```
-4. Run the API
+4. Create tokens by running the following command from project root directory:  
 ```bash
-python main.py
+python utils/tokens.py
 ```
-5. Use the API by setting `openai.base_url` to `http://<Your_Host>:<Your_Port>` 
+5. Run the API
+```bash
+python app.py
+```
+6. Use the API by setting `openai.base_url` to `http://<your_host>:<your_port>` 
 
 ## How it works
 The API listens for OpenAI API requests and translates them to YandexGPT API requests. Then it sends the request to the YandexGPT API and returns translated response to the client.  
