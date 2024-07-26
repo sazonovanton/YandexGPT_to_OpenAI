@@ -1,5 +1,5 @@
 ####################################################################
-#         Dockerfile to run YandexGPT to OpenAI  Translator         #
+#       Dockerfile to run YandexGPT to OpenAI API Translator       #
 #                    Based on an Python Image                      #
 ####################################################################
 
