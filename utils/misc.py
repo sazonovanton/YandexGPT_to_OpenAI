@@ -112,14 +112,3 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
     except Exception as e:
         raise Exception(f'Error in chat_completion_translation: {e}')
     
-async def get_headers(response):
-    """
-    Get headers from response
-    """
-    new_headers = {
-        "Date": f"{datetime.datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')}",
-        "Transfer-Encoding": "chunked",
-        "Content-Type": "application/json",
-        "Connection": "keep-alive",
-    }
-    return new_headers

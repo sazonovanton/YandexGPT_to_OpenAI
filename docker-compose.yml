@@ -12,7 +12,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./certs:/app/certs
+      # - ./certs:/app/certs
     ports:
       - "8520:8000"
     restart: unless-stopped
