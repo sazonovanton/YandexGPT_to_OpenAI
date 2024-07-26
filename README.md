@@ -33,5 +33,5 @@ python main.py
 The API listens for OpenAI API requests and translates them to YandexGPT API requests. Then it sends the request to the YandexGPT API and returns translated response to the client.  
 
 ## What is implemented
-### Chat 
-[chat/completions](https://platform.openai.com/docs/api-reference/chat/create) translates to [TextGeneration.completion](https://yandex.cloud/ru/docs/foundation-models/text-generation/api-ref/TextGeneration/completion)
+### /chat/completions 
+* [Chat completions](https://platform.openai.com/docs/api-reference/chat/create) translates to [TextGeneration.completion](https://yandex.cloud/ru/docs/foundation-models/text-generation/api-ref/TextGeneration/completion) (streaming is supported)
