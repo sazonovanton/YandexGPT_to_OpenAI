@@ -89,3 +89,5 @@ chat_completion = client.chat.completions.create(
 [Embeddings](https://platform.openai.com/docs/api-reference/embeddings) translates to [Embeddings.textEmbedding](https://yandex.cloud/en/docs/foundation-models/embeddings/api-ref/Embeddings/textEmbedding) (_not fully tested_)  
 * ✅ float   
 * ✅ base64  
+### /models
+[Models](https://platform.openai.com/docs/api-reference/models) translates to list of [Yandex Foundation models](Yandex Foundation Models) (_can be incomplete_)

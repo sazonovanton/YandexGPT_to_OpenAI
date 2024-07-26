@@ -13,6 +13,7 @@ import os
 import hashlib
 import base64
 import struct
+import json
 
 def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512, backup_count: int = 3) -> None:
     """
@@ -37,6 +38,14 @@ def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512,
         logger.removeHandler(h)
     logger.addHandler(handler)
     return logger
+
+def get_model_list(path: str = 'data/model_list.json') -> list:
+    """
+    Get model list from a json file
+    """
+    with open(path, 'r') as f:
+        model_list = json.load(f)
+    return model_list
 
 async def messages_translation(messages: list):
     """

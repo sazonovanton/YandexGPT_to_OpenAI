@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import logging
 import time
 
-from utils.misc import messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation
+from utils.misc import get_model_list, messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation
 from utils.tokens import get_tokens
 
 load_dotenv()
@@ -23,6 +23,8 @@ CATALOGID = os.getenv('Y2O_CatalogID')
 
 tokens = get_tokens()
 logger.info(f"Loaded tokens: {tokens}")
+
+MODELS = get_model_list()
 
 print("=== YandexGPT to OpenAI API translator ===")
 logger.info(f"=== YandexGPT to OpenAI API translator: Starting server (tokens: {len(tokens)}) ===")
@@ -210,33 +212,8 @@ async def models_list(user_id: str = Depends(authenticate_user)):
     logger.info(f"* User `{user_id}` requested models list")
     models = {
         "object": "list",
-        "data": [
-                {
-                    "id": "yandexgpt/latest",
-                    "object": "model",
-                    "created": 1686935002,
-                    "owned_by": "yandex"
-                },
-                {
-                    "id": "yandexgpt-lite/rc",
-                    "object": "model",
-                    "created": 1686935002,
-                    "owned_by": "yandex"
-                },
-                {
-                    "id": "yandexgpt-lite/latest",
-                    "object": "model",
-                    "created": 1686935002,
-                    "owned_by": "yandex"
-                },
-                {
-                    "id": "yandexgpt-lite/deprecated",
-                    "object": "model",
-                    "created": 1686935002,
-                    "owned_by": "yandex"
-                }
-            ],
-            "object": "list"
+        "data": MODELS,
+        "object": "list"
         }
     logger.info(f"* User `{user_id}` received models list")
     return JSONResponse(content=models, media_type="application/json")
