@@ -83,5 +83,8 @@ chat_completion = client.chat.completions.create(
 ### /chat/completions 
 * [Chat completions](https://platform.openai.com/docs/api-reference/chat/create) translates to [TextGeneration.completion](https://yandex.cloud/en/docs/foundation-models/text-generation/api-ref/TextGeneration/completion)  
 ✅ Streaming  
-⬜ Vision (not supported by YandexGPT API)  
-⬜ Tools (not supported by YandexGPT API)
+⬜ Vision (not supported yet)  
+⬜ Tools (not supported yet)
+* [Embeddings](https://platform.openai.com/docs/api-reference/embeddings) translates to [Embeddings.textEmbedding](https://yandex.cloud/en/docs/foundation-models/embeddings/api-ref/Embeddings/textEmbedding) (_not fully tested_)
+✅ float 
+✅ base64

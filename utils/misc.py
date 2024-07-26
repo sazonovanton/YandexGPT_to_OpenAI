@@ -2,14 +2,17 @@
 """
 Miscellaneous functions for the project
 
+- setup_logging: Set up logging to log to a file
 - messages_translation: Translate messages from YandexGPT to OpenAI  format
 - chat_completion_translation: Translate chat completion from YandexGPT to OpenAI format
+- chat_completion_chunk_translation: Translate chat completion chunk from YandexGPT to OpenAI format
+- embeddings_translation: Translate embeddings from YandexGPT to OpenAI format
 """
 import time
 import os
-import json
 import hashlib
-import datetime
+import base64
+import struct
 
 def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512, backup_count: int = 3) -> None:
     """
@@ -183,3 +186,41 @@ async def chat_completion_chunk_translation(chunk: dict, deltatext: str, user_id
         raise KeyboardInterrupt
     except Exception as e:
         raise Exception(f'Error in chat_completion_chunk_translation: {e}')
+    
+async def embeddings_translation(embeddings: dict, user_id: str, model: str, b64: bool = False):
+    """
+    Translate embeddings from YandexGPT to OpenAI format
+    Input:
+    - embeddings: dict
+    - user_id: str
+    - model: str
+    - b64: bool (default: False)
+    Output:
+    - new_embeddings: dict
+    """
+    try:
+        emb = embeddings["embedding"]
+        if b64:
+            byte_array = b''.join(struct.pack('f', x) for x in emb)
+            emb = base64.b64encode(byte_array).decode('utf-8')
+        data = [
+            {
+                "object": "embedding",
+                "embedding": emb,
+                "index": 0
+            }
+        ]
+        new_embeddings = {
+            "object": "list",
+            "data": data,
+            "model": f"{model}_{embeddings['modelVersion'].replace('.', '-')}",
+            "usage": {
+                "prompt_tokens": int(embeddings['numTokens']),
+                "total_tokens": int(embeddings['numTokens'])
+            }
+        }
+        return new_embeddings
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
+    except Exception as e:
+        raise Exception(f'Error in embeddings_translation: {e}')

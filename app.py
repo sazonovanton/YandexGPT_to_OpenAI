@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import logging
 import time
 
-from utils.misc import messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation
+from utils.misc import messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation
 from utils.tokens import get_tokens
 
 load_dotenv()
@@ -44,14 +44,6 @@ async def authenticate_user(token: str = Depends(oauth2_scheme)):
     logger.info(f"Authenticated user ID: {user_id}")
     return user_id
 
-
-class ChatCompletions(BaseModel):
-    model: str
-    max_tokens: int = None
-    temperature: float = 0.7
-    messages: list
-    stream: bool = False
-
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info(f"Incoming request: {request.method} {request.url}")
@@ -62,6 +54,18 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     logger.info(f"Response status: {response.status_code}")
     return response
+
+####################################
+#           API endpoints          #
+####################################
+
+# Chat completions
+class ChatCompletions(BaseModel):
+    model: str
+    max_tokens: int = None
+    temperature: float = 0.7
+    messages: list
+    stream: bool = False
 
 @app.post("/v1/chat/completions")
 @app.post("/chat/completions")
@@ -158,7 +162,48 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, user_id
             }
             return JSONResponse(content=response_data, headers=new_headers)
 
+# Embeddings
+class Embeddings(BaseModel):
+    model: str
+    input: str
+    encoding_format: str = "float"
 
+@app.post("/v1/embeddings")
+@app.post("/embeddings")
+async def embeddings(embeddings: Embeddings, user_id: str = Depends(authenticate_user)):
+    logger.info(f"* User `{user_id}` requested embeddings for model `{embeddings.model}`")
+    model = embeddings.model
+    b64 = embeddings.encoding_format == "base64"
+
+    if model in ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"]:
+        logger.info(f"* `{model}` is OpenAI model, using `text-search-query/latest` model")
+        model = "text-search-query/latest"
+
+    url = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Api-Key {SECRETKEY}",
+        "x-folder-id": CATALOGID,
+        "x-data-logging-enabled": "false"
+    }
+    data = {
+        "modelUri": f"emb://{CATALOGID}/{model}",
+        "text": embeddings.input,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            if response.status != 200:
+                logger.error(f"* User `{user_id}` received error: {response.status} - {await response.text()}")
+                raise HTTPException(status_code=response.status, detail=await response.text())
+            response_data = await response.json()
+            response_data = await embeddings_translation(response_data, user_id, model=model, b64=b64)
+            logger.info(f"* User `{user_id}` received embeddings for model `{model}`")
+            logger.debug(f"** Response: {response_data}")
+            return JSONResponse(content=response_data, media_type="application/json")
+            
+
+# Models
 @app.get("/v1/models")
 @app.get("/models")
 async def models_list(user_id: str = Depends(authenticate_user)):
@@ -167,28 +212,28 @@ async def models_list(user_id: str = Depends(authenticate_user)):
         "object": "list",
         "data": [
                 {
-                "id": "yandexgpt/latest",
-                "object": "model",
-                "created": 1686935002,
-                "owned_by": "yandex"
+                    "id": "yandexgpt/latest",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "yandex"
                 },
                 {
-                "id": "yandexgpt-lite/rc",
-                "object": "model",
-                "created": 1686935002,
-                "owned_by": "yandex"
+                    "id": "yandexgpt-lite/rc",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "yandex"
                 },
                 {
-                "id": "yandexgpt-lite/latest",
-                "object": "model",
-                "created": 1686935002,
-                "owned_by": "yandex"
+                    "id": "yandexgpt-lite/latest",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "yandex"
                 },
                 {
-                "id": "yandexgpt-lite/deprecated",
-                "object": "model",
-                "created": 1686935002,
-                "owned_by": "yandex"
+                    "id": "yandexgpt-lite/deprecated",
+                    "object": "model",
+                    "created": 1686935002,
+                    "owned_by": "yandex"
                 }
             ],
             "object": "list"
@@ -196,11 +241,17 @@ async def models_list(user_id: str = Depends(authenticate_user)):
     logger.info(f"* User `{user_id}` received models list")
     return JSONResponse(content=models, media_type="application/json")
 
+# Health check
 @app.get("/v1/health")
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
 
+
+
+####################################
+#               Start              #
+####################################
 if __name__ == "__main__":
     import uvicorn
     if os.getenv('Y2O_SSL_Key') and os.getenv('Y2O_SSL_Cert'):
