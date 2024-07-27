@@ -77,7 +77,7 @@ Generates one JPEG image, does not return revised prompt. When URL is requested,
 [Models](https://platform.openai.com/docs/api-reference/models) translates to list of [Yandex Foundation models](https://yandex.cloud/en/docs/foundation-models/concepts/) that is stored in `data/model_list.json` file (_can be incomplete_)
 
 
-### Usage
+## Usage
 Here is an example of how to use the API (for chat completions).  
 #### cURL example
 ```bash
