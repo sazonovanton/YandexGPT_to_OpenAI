@@ -95,7 +95,7 @@ chat_completion = client.chat.completions.create(
 ### /images/generations
 [Images generations](https://platform.openai.com/docs/api-reference/images/create) translates to [ImageGenerationAsync.generate](https://yandex.cloud/ru/docs/foundation-models/image-generation/api-ref/ImageGenerationAsync/generate).  
 Generates one JPEG image, does not return revised prompt. When URL is requested, it saves generated image to the `data/images` directory and deletes it after one hour. Directory is cleaned on server start.  
-* ✅ response_format: `base64`, `url`  
+* ✅ response_format: `b64_json`, `url`  
 * ❕ size - sets aspect ratio, not width and height (weight of width and height in image)  
 * ❌ n - number of images to generate (always 1)  
 ### /models
