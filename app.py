@@ -212,7 +212,7 @@ class ImageGeneration(BaseModel):
     n: int = 1
     size: str = "1024x1024"
     quality: str = "standard"
-    response_format: str = "b64_json"
+    response_format: str = "url"
     style: str = None
     timeout: int = 45
 

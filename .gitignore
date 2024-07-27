@@ -24,10 +24,12 @@ env/
 *.log.*
 *test.py
 *.jpg
+*.txt
 
 # IMPORTANT
 .env
 tokens.json
+.docker-compose.yml
 
 # CERTS
 certs/*

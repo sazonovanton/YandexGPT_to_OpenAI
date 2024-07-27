@@ -14,6 +14,10 @@ git clone https://github.com/sazonovanton/YandexGPT_to_OpenAI
 cd YandexGPT_to_OpenAI
 ```
 After that follow the instructions below and then use the API by setting `openai.base_url` to `http://<your_host>:<your_port>/v1` in your program.  
+Also create tokens by running the following command from project root directory:  
+```bash
+python utils/tokens.py
+```
 
 ### Setup with Docker
 1. Install Docker if you haven't already.
@@ -44,18 +48,15 @@ Y2O_LogLevel=INFO
 ```
 Here are default values, only `Y2O_SecretKey` and `Y2O_CatalogID` are required, others are optional.  
 `Y2O_ServerURL` needed to send an URL of the generated image in the response, default is `http://localhost:8000`.  
-If you want to use SSL, you can set paths to the SSL key and certificate files:  
+3. Run the API
+```bash
+python app.py
+```
+### SSL
+If you want to use SSL, you can set paths to the SSL key and certificate files via environment variables in the `docker-compose.yml` file or in the `.env` file.  
 ```bash
 Y2O_SSL_Key=ssl/private.key
 Y2O_SSL_Cert=ssl/cert.pem
-```
-3. Create tokens by running the following command from project root directory:  
-```bash
-python utils/tokens.py
-```
-4. Run the API
-```bash
-python app.py
 ```
 
 ## What is implemented
