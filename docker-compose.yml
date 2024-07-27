@@ -7,8 +7,9 @@ services:
     environment:
       - Y2O_SecretKey=your_secret_key
       - Y2O_CatalogID=your_catalog_id
+      - Y2O_ServerURL=http://127.0.0.1:8520
       - Y2O_LogFile=logs/y2o.log
-      - Y2O_LogLevel=DEBUG
+      - Y2O_LogLevel=INFO
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
