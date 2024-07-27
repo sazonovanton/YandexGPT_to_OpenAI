@@ -23,6 +23,7 @@ env/
 *.log
 *.log.*
 *test.py
+*.jpg
 
 # IMPORTANT
 .env

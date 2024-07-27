@@ -9,8 +9,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 import logging
 import time
+import asyncio
 
-from utils.misc import get_model_list, messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation
+from utils.misc import get_model_list, messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation, image_generation_translation
 from utils.tokens import get_tokens
 
 load_dotenv()
@@ -21,10 +22,19 @@ logger = setup_logging(os.getenv('Y2O_LogFile', './logs/y2o.log'), os.getenv('Y2
 SECRETKEY = os.getenv('Y2O_SecretKey')
 CATALOGID = os.getenv('Y2O_CatalogID')
 
+# Get tokens
 tokens = get_tokens()
 logger.info(f"Loaded tokens: {tokens}")
 
+# Get model list
 MODELS = get_model_list()
+
+# Clear images folder
+if os.path.exists("data/images"):
+    logger.info("Images folder exists, deleting all images")
+    for image in os.listdir("data/images"):
+        if os.path.isfile(f"data/images/{image}") and image.endswith(".jpg"):
+            os.remove(f"data/images/{image}")
 
 print("=== YandexGPT to OpenAI API translator ===")
 logger.info(f"=== YandexGPT to OpenAI API translator: Starting server (tokens: {len(tokens)}) ===")
@@ -34,7 +44,6 @@ app = FastAPI(docs_url=None, redoc_url=None, title="YandexGPT to OpenAI API tran
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def authenticate_user(token: str = Depends(oauth2_scheme)):
-    logger.info(f"Authenticating token: {token}")
     if token not in tokens:
         logger.error(f"Invalid token: {token}")
         raise HTTPException(
@@ -43,18 +52,17 @@ async def authenticate_user(token: str = Depends(oauth2_scheme)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     user_id = tokens[token]
-    logger.info(f"Authenticated user ID: {user_id}")
     return user_id
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger.info(f"Incoming request: {request.method} {request.url}")
+    logger.debug(f"Incoming request: {request.method} {request.url}")
     if request.headers.get("Authorization"):
-        logger.info(f"Authorization Header: {request.headers['Authorization']}")
+        logger.debug(f"Authorization Header: ...{request.headers['Authorization'][:4]}")
     else:
-        logger.info("Authorization Header: Not provided")
+        logger.debug("Authorization Header: Not provided")
     response = await call_next(request)
-    logger.info(f"Response status: {response.status_code}")
+    logger.debug(f"Response status: {response.status_code}")
     return response
 
 ####################################
@@ -79,8 +87,6 @@ async def chat_completions(chat_completions: ChatCompletions, user_id: str = Dep
         return await non_stream_chat_completions(chat_completions, user_id)
 
 async def stream_chat_completions(chat_completions: ChatCompletions, user_id: str):
-    logger.debug(f"** Authorization Token: {user_id}")
-
     model = chat_completions.model
     if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
         model = "yandexgpt-lite/latest"
@@ -118,7 +124,6 @@ async def stream_chat_completions(chat_completions: ChatCompletions, user_id: st
                         str_index = len(data['result']['alternatives'][0]['message']['text'])
                         new_chunk = await chat_completion_chunk_translation(data, deltatext, user_id, model, timestamp=now)
                         logger.info(f"* User `{user_id}` received chat completion chunk (id: `{new_chunk['id']}`).")
-                        logger.debug(f"** Response: {new_chunk['choices']}")
                         # yield json.dumps(new_chunk)
                         yield f"data: {json.dumps(new_chunk)}\n\n"
                     except json.JSONDecodeError:
@@ -126,8 +131,6 @@ async def stream_chat_completions(chat_completions: ChatCompletions, user_id: st
                         pass
 
 async def non_stream_chat_completions(chat_completions: ChatCompletions, user_id: str):
-    logger.debug(f"** Authorization Token: {user_id}")
-
     model = chat_completions.model
     if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
         model = "yandexgpt-lite/latest"
@@ -156,7 +159,6 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, user_id
             response_data = await response.json()
             response_data = await chat_completion_translation(response_data, user_id, model)
             logger.info(f"* User `{user_id}` received chat completions (id: `{response_data['id']}`). Tokens used (prompt/completion/total): {response_data['usage']['prompt_tokens']}/{response_data['usage']['completion_tokens']}/{response_data['usage']['total_tokens']}")
-            logger.debug(f"** Response: {response_data['choices']}")
             new_headers = {
                 "Date": f"{datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')}",
                 "Content-Type": "application/json",
@@ -201,9 +203,128 @@ async def embeddings(embeddings: Embeddings, user_id: str = Depends(authenticate
             response_data = await response.json()
             response_data = await embeddings_translation(response_data, user_id, model=model, b64=b64)
             logger.info(f"* User `{user_id}` received embeddings for model `{model}`")
-            logger.debug(f"** Response: {response_data}")
             return JSONResponse(content=response_data, media_type="application/json")
             
+# Image generation
+class ImageGeneration(BaseModel):
+    model: str
+    prompt: str
+    n: int = 1
+    size: str = "1024x1024"
+    quality: str = "standard"
+    response_format: str = "b64_json"
+    style: str = None
+    timeout: int = 45
+
+async def image_generation_request(model: str, prompt: str, size: str = "1024x1024"):
+    """
+    Request image generation from Yandex API
+    https://yandex.cloud/ru/docs/foundation-models/image-generation/api-ref/ImageGenerationAsync/generate
+    """
+    size = size.split("x")
+    if len(size) != 2:
+        size = ["1024", "1024"]
+    url = "https://llm.api.cloud.yandex.net/foundationModels/v1/imageGenerationAsync"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Api-Key {SECRETKEY}",
+        "x-folder-id": CATALOGID,
+        "x-data-logging-enabled": "false"
+    }
+    data = {
+        "modelUri": f"art://{CATALOGID}/{model}",
+        "messages": [
+            {
+                "text": prompt,
+                "weight": 1
+            }
+        ],
+        "generationOptions": {
+            "mimeType": "image/jpeg", # only `image/jpeg` supported
+            # "seed": randint(0, 1000000),
+            "aspectRatio": {
+                "widthRatio": int(size[0]),
+                "heightRatio": int(size[1])
+            }
+        }
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            if response.status != 200:
+                logger.error(f"Received error: {response.status} - {await response.text()}")
+                raise HTTPException(status_code=response.status, detail=await response.text())
+            response_data = await response.json()
+            if "error" in response_data:
+                logger.error(f"Received error in response data: {response_data['error']}")
+                raise HTTPException(status_code=500, detail=response_data['error'])
+            operation_id = response_data["id"]
+            return operation_id
+        
+async def image_generation_check(operation_id: str):
+    url = f"https://llm.api.cloud.yandex.net:443/operations/{operation_id}"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Api-Key {SECRETKEY}",
+        "x-folder-id": CATALOGID,
+        "x-data-logging-enabled": "false"
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                logger.error(f"Received error: {response.status} - {await response.text()}")
+                raise HTTPException(status_code=response.status, detail=await response.text())
+            response_data = await response.json()
+            if "error" in response_data:
+                raise HTTPException(status_code=500, detail=response_data['error']['message'])
+            if response_data["done"]:
+                if "response" in response_data:
+                    return response_data
+            else:
+                return None
+
+@app.post("/v1/images/generations")
+@app.post("/images/generations")
+async def image_generation(image_generation: ImageGeneration, user_id: str = Depends(authenticate_user)):
+    logger.info(f"* User `{user_id}` requested image generation via model `{image_generation.model}`")
+    model = image_generation.model
+    b64 = image_generation.response_format == "b64_json"
+    timeout = image_generation.timeout
+
+    if model in ["dall-e-2", "dall-e-3"]:
+        logger.info(f"* `{model}` is OpenAI model, using `yandex-art/latest` model")
+        model = "yandex-art/latest"
+
+    # request image generation
+    created_at = int(time.time())
+    operation_id = await image_generation_request(model, image_generation.prompt, image_generation.size)
+    response_data = None
+    # check image generation status
+    i = 0
+    while response_data is None:
+        response_data = await image_generation_check(operation_id)
+        i += 1
+        if i > timeout:
+            logger.error(f"* User `{user_id}` image generation timeout")
+            raise HTTPException(status_code=500, detail=f"Image generation timeout ({timeout}s)")
+        await asyncio.sleep(1)
+
+    response_data = await image_generation_translation(response_data, user_id, created_at, b64)
+    if not b64:
+        static_images_url = f"{os.getenv('Y2O_ServerURL', 'http://localhost:8000')}/images"
+        response_data["data"][0]["url"] = f'{static_images_url}/{response_data["data"][0]["url"]}'
+    logger.info(f"* User `{user_id}` received image generation (id: `{operation_id}`).")
+    return JSONResponse(content=response_data, media_type="application/json")
+
+@app.get("/v1/images/{image_id}")
+@app.get("/images/{image_id}")
+async def get_image(image_id: str, user_id: str = Depends(authenticate_user)):
+    logger.info(f"* User `{user_id}` requested generated image `{image_id}`")
+    if not os.path.exists(f"data/images/{image_id}"):
+        logger.error(f"* User `{user_id}` requested image `{image_id}` not found")
+        raise HTTPException(status_code=404, detail="Image not found")
+    return StreamingResponse(open(f"data/images/{image_id}", "rb"), media_type="image/jpeg")
 
 # Models
 @app.get("/v1/models")

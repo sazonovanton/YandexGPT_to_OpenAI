@@ -34,5 +34,11 @@
         "object": "model",
         "created": 1686935002,
         "owned_by": "yandex"
+    },
+    {
+        "id": "yandex-art/latest",
+        "object": "model",
+        "created": 1686935002,
+        "owned_by": "yandex"
     }
 ]

@@ -14,6 +14,7 @@ import hashlib
 import base64
 import struct
 import json
+import asyncio
 
 def setup_logging(log_file: str, log_level: str = 'CRITICAL', max_kb: int = 512, backup_count: int = 3) -> None:
     """
@@ -233,3 +234,47 @@ async def embeddings_translation(embeddings: dict, user_id: str, model: str, b64
         raise KeyboardInterrupt
     except Exception as e:
         raise Exception(f'Error in embeddings_translation: {e}')
+    
+async def delete_image(image_path: str):
+    """
+    Delete image
+    Input:
+    - image_path: str
+    """
+    if os.path.exists(image_path):
+        os.remove(image_path)
+
+async def image_generation_translation(data: dict, user_id: str, created_at: int, b64: bool = False):
+    """
+    Translate image generation from YandexGPT to OpenAI format
+    Input:
+    - data: dict
+    - user_id: str
+    - model: str
+    - b64: bool (default: False)
+    Output:
+    - data: dict
+    """
+    try:
+        image = data["response"]["image"] # base64 image
+        response = {
+            "created": created_at,
+            "data": [{}]
+        }
+        if b64:
+            response["data"][0]["b64_json"] = image
+        else:
+            if not os.path.exists("data/images"):
+                os.makedirs("data/images")
+            oid = data["id"]
+            image_path = f"data/images/{oid}.jpg"
+            with open(image_path, "wb") as f:
+                f.write(base64.b64decode(image))
+            response["data"][0]["url"] = f"{oid}.jpg"
+            # schedule deleting in an hour
+            asyncio.get_event_loop().call_later(3600, asyncio.create_task, delete_image(image_path))
+        return response
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
+    except Exception as e:
+        raise Exception(f'Error in image_generation_translation: {e}')
