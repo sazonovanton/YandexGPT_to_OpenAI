@@ -70,7 +70,7 @@ Y2O_SSL_Cert=ssl/cert.pem
 * ✅ encoding_format: `float`, `base64`  
 ### /images/generations
 [Images generations](https://platform.openai.com/docs/api-reference/images/create) translates to [ImageGenerationAsync.generate](https://yandex.cloud/ru/docs/foundation-models/image-generation/api-ref/ImageGenerationAsync/generate).  
-Generates one JPEG image, does not return revised prompt. When URL is requested, it saves generated image to the `data/images` directory and deletes it after one hour. Directory is cleaned on server start.  
+Generates one JPEG image, does not return revised prompt. When URL is requested, it saves generated image to the `data/images` directory and deletes it after one hour. Directory is cleaned on server start. Recommended to use `response_format: b64_json` to get image as base64 encoded string as it provided by YandexART and not additionaly processed.  
 * ✅ response_format: `b64_json`, `url`  
 * ❕ size - sets aspect ratio, not width and height (weight of width and height in image)  
 * ❌ n - number of images to generate (always 1)  
@@ -79,7 +79,8 @@ Generates one JPEG image, does not return revised prompt. When URL is requested,
 
 
 ## Usage
-Here is an example of how to use the API (for chat completions).  
+Here is an example of how to use the API.
+### Chat completions
 #### cURL example
 ```bash
 curl http://<your_host>:<your_port>/v1/chat/completions \
@@ -99,7 +100,6 @@ curl http://<your_host>:<your_port>/v1/chat/completions \
     ]
   }'
 ```
-
 #### Python example
 ```python
 import os
@@ -117,5 +117,37 @@ chat_completion = client.chat.completions.create(
         }
     ],
     model="yandexgpt/latest",
+)
+```
+### Image generations
+#### cURL example
+Generate an image and get the URL:
+```bash
+curl http://<your_host>:<your_port>/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "model": "yandex-art/latest",
+    "prompt": "A painting of a cat",
+    "response_format": "url"
+  }'
+```
+Retrive the image by the URL in the response:
+```bash
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -O http://<your_host>:<your_port>/images/<id>.jpg
+```
+#### Python example
+Returing image as base64 encoded string:
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("TOKEN"),
+    base_url="http://<your_host>:<your_port>/v1",
+)
+image_generation = client.images.generate(
+    model="yandex-art/latest",
+    prompt="A painting of a cat",
+    response_format="b64_json"
 )
 ```
