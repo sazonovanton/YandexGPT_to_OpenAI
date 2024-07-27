@@ -8,7 +8,7 @@ Supports text generation, text embeddings and image generation (learn [more](#wh
 
 ## How to use
 ### Setup
-1. Get API key and catalog ID from [Yandex Cloud](https://yandex.cloud/en/docs/iam/concepts/authorization/api-key)
+1. Get API key and catalog ID from [Yandex Cloud](https://yandex.cloud/en/docs/iam/concepts/authorization/api-key). Roles needed: `ai.languageModels.user` and `ai.imageGeneration.user`.  
 2. Clone this repository
 3. Install the requirements
 ```bash
