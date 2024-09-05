@@ -129,7 +129,7 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
             }
             i += 1
             choices.append(new_choice)
-        userhash = hashlib.md5(user_id.encode()).hexdigest()
+        userhash = hashlib.md5(user_id.encode()).hexdigest() if user_id else "none"
         current_time = int(time.time())
         new_chat_completion = {
             "id": f"y2o-{userhash}{current_time}",
@@ -181,7 +181,7 @@ async def chat_completion_chunk_translation(chunk: dict, deltatext: str, user_id
         # i += 1
         choices.append(new_choice)
 
-        userhash = hashlib.md5(user_id.encode()).hexdigest()
+        userhash = hashlib.md5(user_id.encode()).hexdigest() if user_id else "none"
         current_time = int(timestamp)
         new_chat_chunk_completion = {
             "id": f"y2o-{userhash}{current_time}",

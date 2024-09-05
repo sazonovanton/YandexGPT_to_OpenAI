@@ -14,10 +14,17 @@ git clone https://github.com/sazonovanton/YandexGPT_to_OpenAI
 cd YandexGPT_to_OpenAI
 ```
 After that follow the instructions below and then use the API by setting `openai.base_url` to `http://<your_host>:<your_port>/v1` in your program.  
-Also create tokens by running the following command from project root directory:  
+
+### Authentication
+Authentication is done by providing a token in the header. You can use generated tokens from the `utils/tokens.py` script or use your own Yandex cloud API keys as token for the API.  
+#### Generate tokens
+Create tokens by running the following command from project root directory:  
 ```bash
 python utils/tokens.py
-```
+```  
+Tokens are stored in the `data/tokens.json` file.
+#### User own keys
+You can set API so that users can use their own Yandex cloud API keys as token for the API by setting `Y2O_BringYourOwnKey` to `True` in the environment variables.
 
 ### Setup with Docker
 1. Install Docker if you haven't already.
@@ -38,16 +45,19 @@ pip install -r requirements.txt
 ```
 2. Create environment variables for the OpenAI API key and the YandexGPT API key. You can do this by creating a `.env` file in the root of the project with the following content:
 ```bash
-Y2O_SecretKey=***
-Y2O_CatalogID=***
+Y2O_SecretKey=None
+Y2O_CatalogID=None
+Y2O_BringYourOwnKey=False
 Y2O_Host=127.0.0.1
-Y2O_Port=8000
-Y2O_ServerURL=http://127.0.0.1:8000
+Y2O_Port=8520
+Y2O_ServerURL=http://127.0.0.1:8520
 Y2O_LogFile=logs/y2o.log
 Y2O_LogLevel=INFO
 ```
-Here are default values, only `Y2O_SecretKey` and `Y2O_CatalogID` are required, others are optional.  
-`Y2O_ServerURL` needed to send an URL of the generated image in the response, default is `http://localhost:8000`.  
+Here are default values.  
+If you set `Y2O_BringYourOwnKey` to `True`, then users are able to use their own Yandex cloud API keys as token for the API (token in that case `<CatalogID>:<SecretKey>`).  
+If you set `Y2O_SecretKey` and `Y2O_CatalogID`, then users will be able to use the API without providing their own keys but using given token instead.  
+`Y2O_ServerURL` needed to send an URL of the generated image in the response, default is `http://localhost:8520`.  
 3. Run the API
 ```bash
 python app.py

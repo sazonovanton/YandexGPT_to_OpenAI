@@ -19,12 +19,33 @@ load_dotenv()
 logger = setup_logging(os.getenv('Y2O_LogFile', './logs/y2o.log'), os.getenv('Y2O_LogLevel', 'INFO').upper())
 
 # Yandex API settings 
-SECRETKEY = os.getenv('Y2O_SecretKey')
-CATALOGID = os.getenv('Y2O_CatalogID')
+SECRETKEY = os.getenv('Y2O_SecretKey', None)
+CATALOGID = os.getenv('Y2O_CatalogID', None)
+# Is BYOK enabled (user can state their own key and catalog id in token as <CatalogID>:<SecretKey>)
+BYOK = os.getenv('Y2O_BringYourOwnKey', 'False')
+BYOK = BYOK.lower() in ['true', '1', 't', 'y', 'yes']
+
+if SECRETKEY is None or CATALOGID is None:
+    if not BYOK:
+        logger.error("Y2O_SecretKey and Y2O_CatalogID must be set in .env file")
+        raise Exception("Y2O_SecretKey and Y2O_CatalogID must be set in .env file")
+    else:
+        logger.warning("Y2O_SecretKey and Y2O_CatalogID not set, BYOK enabled")
+else:
+    logger.info(f"Yandex API settings: CatalogID: {CATALOGID}, SecretKey: ***{SECRETKEY[-4:]} (BYOK: {BYOK})")
 
 # Get tokens
-tokens = get_tokens()
+try:
+    tokens = get_tokens()
+except Exception as e:
+    if not BYOK:
+        raise e
+    else:
+        tokens = {}
+        logger.warning("Tokens not loaded, BYOK enabled")
+
 logger.info(f"Loaded tokens: {tokens}")
+logger.info(f"Bring your own key: `{BYOK}` (let user state their own credentials as `<CatalogID>:<SecretKey>` instead of token)")
 
 # Get model list
 MODELS = get_model_list()
@@ -44,21 +65,53 @@ app = FastAPI(docs_url=None, redoc_url=None, title="YandexGPT to OpenAI API tran
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def authenticate_user(token: str = Depends(oauth2_scheme)):
-    if token not in tokens:
-        logger.error(f"Invalid token: {token}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user_id = tokens[token]
-    return user_id
+    auth_response = {
+        "user_id": None,
+        "byok": None
+    }
+    # Return BYOK data if BYOK is enabled and token is in BYOK format
+    if BYOK and ":" in token:
+        catalogid, secretkey = token.split(":")
+        logger.debug(f"BYOK credentials: ***{catalogid[-4:]}:***{secretkey[-4:]}")
+        auth_response["byok"] = {
+            "catalogid": catalogid,
+            "secretkey": secretkey
+        }
+        return auth_response 
+    # If BYOK is not enabled or token is not in BYOK format, check if token is in tokens list
+    if len(tokens) > 0:
+        if token in tokens:
+            logger.debug(f"Valid token: {token}")
+            user_id = tokens[token]
+            auth_response["user_id"] = user_id
+            return auth_response
+    # At this point, token is not valid
+    logger.warning(f"Invalid token: {token}")
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+async def get_creds(auth: dict):
+    catalogid = None
+    secretkey = None
+    user_id = None
+    if auth["byok"] and BYOK:
+        catalogid = auth["byok"]["catalogid"]
+        secretkey = auth["byok"]["secretkey"]
+    if auth["user_id"]:
+        user_id = auth["user_id"]
+        catalogid = CATALOGID
+        secretkey = SECRETKEY
+    return catalogid, secretkey, user_id
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
     if request.headers.get("Authorization"):
-        logger.debug(f"Authorization Header: ...{request.headers['Authorization'][:4]}")
+        logger.debug(f"Authorization Header: ...{request.headers['Authorization'][-4:]}")
     else:
         logger.debug("Authorization Header: Not provided")
     response = await call_next(request)
@@ -79,14 +132,15 @@ class ChatCompletions(BaseModel):
 
 @app.post("/v1/chat/completions")
 @app.post("/chat/completions")
-async def chat_completions(chat_completions: ChatCompletions, user_id: str = Depends(authenticate_user)):
-    logger.info(f"* User `{user_id}` requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
+async def chat_completions(chat_completions: ChatCompletions, auth: dict = Depends(authenticate_user)):
+    logger.info(f"* User requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
     if chat_completions.stream:
-        return StreamingResponse(stream_chat_completions(chat_completions, user_id), media_type="text/event-stream")
+        return StreamingResponse(stream_chat_completions(chat_completions, auth), media_type="text/event-stream")
     else:
-        return await non_stream_chat_completions(chat_completions, user_id)
+        return await non_stream_chat_completions(chat_completions, auth)
 
-async def stream_chat_completions(chat_completions: ChatCompletions, user_id: str):
+async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
+    catalogid, secretkey, user_id = await get_creds(auth)
     model = chat_completions.model
     if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
         model = "yandexgpt-lite/latest"
@@ -94,12 +148,12 @@ async def stream_chat_completions(chat_completions: ChatCompletions, user_id: st
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Api-Key {SECRETKEY}",
-        "x-folder-id": CATALOGID,
+        "Authorization": f"Api-Key {secretkey}",
+        "x-folder-id": catalogid,
         "x-data-logging-enabled": "false"
     }
     data = {
-        "modelUri": f"gpt://{CATALOGID}/{model}",
+        "modelUri": f"gpt://{catalogid}/{model}",
         "completionOptions": {
             "stream": True,
             "temperature": chat_completions.temperature,
@@ -130,7 +184,8 @@ async def stream_chat_completions(chat_completions: ChatCompletions, user_id: st
                         # Handle chunk that might not be complete JSON
                         pass
 
-async def non_stream_chat_completions(chat_completions: ChatCompletions, user_id: str):
+async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
+    catalogid, secretkey, user_id = await get_creds(auth)
     model = chat_completions.model
     if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
         model = "yandexgpt-lite/latest"
@@ -138,12 +193,12 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, user_id
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Api-Key {SECRETKEY}",
-        "x-folder-id": CATALOGID,
+        "Authorization": f"Api-Key {secretkey}",
+        "x-folder-id": catalogid,
         "x-data-logging-enabled": "false"
     }
     data = {
-        "modelUri": f"gpt://{CATALOGID}/{model}",
+        "modelUri": f"gpt://{catalogid}/{model}",
         "completionOptions": {
             "stream": False,
             "temperature": chat_completions.temperature,
@@ -174,7 +229,8 @@ class Embeddings(BaseModel):
 
 @app.post("/v1/embeddings")
 @app.post("/embeddings")
-async def embeddings(embeddings: Embeddings, user_id: str = Depends(authenticate_user)):
+async def embeddings(embeddings: Embeddings, auth: dict = Depends(authenticate_user)):
+    catalogid, secretkey, user_id = await get_creds(auth)
     logger.info(f"* User `{user_id}` requested embeddings for model `{embeddings.model}`")
     model = embeddings.model
     b64 = embeddings.encoding_format == "base64"
@@ -186,12 +242,12 @@ async def embeddings(embeddings: Embeddings, user_id: str = Depends(authenticate
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Api-Key {SECRETKEY}",
-        "x-folder-id": CATALOGID,
+        "Authorization": f"Api-Key {secretkey}",
+        "x-folder-id": catalogid,
         "x-data-logging-enabled": "false"
     }
     data = {
-        "modelUri": f"emb://{CATALOGID}/{model}",
+        "modelUri": f"emb://{catalogid}/{model}",
         "text": embeddings.input,
     }
 
@@ -216,7 +272,7 @@ class ImageGeneration(BaseModel):
     style: str = None
     timeout: int = 45
 
-async def image_generation_request(model: str, prompt: str, size: str = "1024x1024"):
+async def image_generation_request(secretkey: str, catalogid: str, model: str, prompt: str, size: str = "1024x1024"):
     """
     Request image generation from Yandex API
     https://yandex.cloud/ru/docs/foundation-models/image-generation/api-ref/ImageGenerationAsync/generate
@@ -227,12 +283,12 @@ async def image_generation_request(model: str, prompt: str, size: str = "1024x10
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/imageGenerationAsync"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Api-Key {SECRETKEY}",
-        "x-folder-id": CATALOGID,
+        "Authorization": f"Api-Key {secretkey}",
+        "x-folder-id": catalogid,
         "x-data-logging-enabled": "false"
     }
     data = {
-        "modelUri": f"art://{CATALOGID}/{model}",
+        "modelUri": f"art://{catalogid}/{model}",
         "messages": [
             {
                 "text": prompt,
@@ -261,12 +317,12 @@ async def image_generation_request(model: str, prompt: str, size: str = "1024x10
             operation_id = response_data["id"]
             return operation_id
         
-async def image_generation_check(operation_id: str):
+async def image_generation_check(secretkey: str, catalogid: str, operation_id: str):
     url = f"https://llm.api.cloud.yandex.net:443/operations/{operation_id}"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Api-Key {SECRETKEY}",
-        "x-folder-id": CATALOGID,
+        "Authorization": f"Api-Key {secretkey}",
+        "x-folder-id": catalogid,
         "x-data-logging-enabled": "false"
     }
     
@@ -286,7 +342,8 @@ async def image_generation_check(operation_id: str):
 
 @app.post("/v1/images/generations")
 @app.post("/images/generations")
-async def image_generation(image_generation: ImageGeneration, user_id: str = Depends(authenticate_user)):
+async def image_generation(image_generation: ImageGeneration, auth: dict = Depends(authenticate_user)):
+    catalogid, secretkey, user_id = await get_creds(auth)
     logger.info(f"* User `{user_id}` requested image generation via model `{image_generation.model}`")
     model = image_generation.model
     b64 = image_generation.response_format == "b64_json"
@@ -298,12 +355,12 @@ async def image_generation(image_generation: ImageGeneration, user_id: str = Dep
 
     # request image generation
     created_at = int(time.time())
-    operation_id = await image_generation_request(model, image_generation.prompt, image_generation.size)
+    operation_id = await image_generation_request(secretkey, catalogid, model, image_generation.prompt, image_generation.size)
     response_data = None
     # check image generation status
     i = 0
     while response_data is None:
-        response_data = await image_generation_check(operation_id)
+        response_data = await image_generation_check(secretkey, catalogid, operation_id)
         i += 1
         if i > timeout:
             logger.error(f"* User `{user_id}` image generation timeout")
@@ -319,7 +376,8 @@ async def image_generation(image_generation: ImageGeneration, user_id: str = Dep
 
 @app.get("/v1/images/{image_id}")
 @app.get("/images/{image_id}")
-async def get_image(image_id: str, user_id: str = Depends(authenticate_user)):
+async def get_image(image_id: str, auth: dict = Depends(authenticate_user)):
+    catalogid, secretkey, user_id = await get_creds(auth)
     logger.info(f"* User `{user_id}` requested generated image `{image_id}`")
     if not os.path.exists(f"data/images/{image_id}"):
         logger.error(f"* User `{user_id}` requested image `{image_id}` not found")
@@ -329,14 +387,16 @@ async def get_image(image_id: str, user_id: str = Depends(authenticate_user)):
 # Models
 @app.get("/v1/models")
 @app.get("/models")
-async def models_list(user_id: str = Depends(authenticate_user)):
-    logger.info(f"* User `{user_id}` requested models list")
+# async def models_list(auth: dict = Depends(authenticate_user)):
+#     catalogid, secretkey, user_id = await get_creds(auth)
+async def models_list():
+    logger.info(f"* User requested models list")
     models = {
         "object": "list",
         "data": MODELS,
         "object": "list"
         }
-    logger.info(f"* User `{user_id}` received models list")
+    logger.info(f"* User received models list")
     return JSONResponse(content=models, media_type="application/json")
 
 # Health check
@@ -354,7 +414,7 @@ if __name__ == "__main__":
     import uvicorn
     if os.getenv('Y2O_SSL_Key') and os.getenv('Y2O_SSL_Cert'):
         logger.info("SSL keys found, starting server with SSL")
-        uvicorn.run(app, host=os.getenv('Y2O_Host', '0.0.0.0'), port=int(os.getenv('Y2O_Port', 8000)), ssl_keyfile=os.getenv('Y2O_SSL_Key'), ssl_certfile=os.getenv('Y2O_SSL_Cert'))
+        uvicorn.run(app, host=os.getenv('Y2O_Host', '0.0.0.0'), port=int(os.getenv('Y2O_Port', 8520)), ssl_keyfile=os.getenv('Y2O_SSL_Key'), ssl_certfile=os.getenv('Y2O_SSL_Cert'))
     else:
         logger.info("Starting server without SSL")
-        uvicorn.run(app, host=os.getenv('Y2O_Host', '0.0.0.0'), port=int(os.getenv('Y2O_Port', 8000)))
+        uvicorn.run(app, host=os.getenv('Y2O_Host', '0.0.0.0'), port=int(os.getenv('Y2O_Port', 8520)))
