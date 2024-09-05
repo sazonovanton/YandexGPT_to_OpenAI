@@ -24,7 +24,7 @@ python utils/tokens.py
 ```  
 Tokens are stored in the `data/tokens.json` file.
 #### User own keys
-You can set API so that users can use their own Yandex cloud API keys as token for the API by setting `Y2O_BringYourOwnKey` to `True` in the environment variables.
+You can set API so that users can use their own Yandex cloud API keys as token (as `<CatalogID>:<SecretKey>`) for the API by setting `Y2O_BringYourOwnKey` to `True` in the environment variables.
 
 ### Setup with Docker
 1. Install Docker if you haven't already.
