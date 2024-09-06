@@ -1,44 +1,71 @@
 [
     {
         "id": "yandexgpt/latest",
+        "name": "YandexGPT Pro",
         "object": "model",
-        "created": 1686935002,
+        "created": 1711612800,
+        "description": "YandexGPT Pro is a largest version of YandexGPT 3 models. It provides most accurate responses to complex prompts.",
+        "content_length": 8191,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-lite/rc",
+        "name": "YandexGPT Lite (Release Candidate)",
         "object": "model",
-        "created": 1686935002,
+        "created": 1711612800,
+        "description": "YandexGPT Lite is a standard version of YandexGPT models (YandexGPT generation 3). It suitable for solvitng tasks in real time.\nThis model is a release candidate version (RC).",
+        "content_length": 8191,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-lite/latest",
+        "name": "YandexGPT Lite",
         "object": "model",
-        "created": 1686935002,
+        "created": 1711612800,
+        "description": "YandexGPT Lite is a standard version of YandexGPT models (YandexGPT generation 3). It suitable for solvitng tasks in real time.",
+        "content_length": 8191,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-lite/deprecated",
+        "name": "YandexGPT Lite (Deprecated)",
         "object": "model",
-        "created": 1686935002,
+        "created": 1711612800,
+        "description": "YandexGPT Lite is a standard version of YandexGPT models (YandexGPT generation 2). It suitable for solvitng tasks in real time.\nThis model is a deprecated version.",
+        "content_length": 8191,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "summarization/latest",
+        "name": "YandexGPT - Summarization Model",
+        "object": "model",
+        "created": 1711612800,
+        "description": "Special summary model based on YandexGPT Lite (YandexGPT generation 2).",
+        "content_length": 8191,
         "owned_by": "yandex"
     },
     {
         "id": "text-search-doc/latest",
+        "name": "Text vectorization model (doc)",
         "object": "model",
         "created": 1686935002,
+        "description": "Text vectorization model for large texts (documents, articles).",
         "owned_by": "yandex"
     },
     {
         "id": "text-search-query/latest",
+        "name": "Text vectorization model (query)",
         "object": "model",
         "created": 1686935002,
+        "description": "Text vectorization model for short texts (queries, requests).",
         "owned_by": "yandex"
     },
     {
         "id": "yandex-art/latest",
+        "name": "YandexART",
         "object": "model",
-        "created": 1686935002,
+        "created": 1713945600,
+        "description": "YandexART is a text-to-image diffusion model aligned with to human preferences using RLHF.",
         "owned_by": "yandex"
     }
 ]

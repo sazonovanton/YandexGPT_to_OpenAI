@@ -1,0 +1,50 @@
+[
+    {
+        "id": "yandexgpt/latest",
+        "object": "model",
+        "created": 1711612800,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandexgpt-lite/rc",
+        "object": "model",
+        "created": 1711612800,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandexgpt-lite/latest",
+        "object": "model",
+        "created": 1711612800,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "summarization/latest",
+        "object": "model",
+        "created": 1711612800,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandexgpt-lite/deprecated",
+        "object": "model",
+        "created": 1711612800,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "text-search-doc/latest",
+        "object": "model",
+        "created": 1686935002,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "text-search-query/latest",
+        "object": "model",
+        "created": 1686935002,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandex-art/latest",
+        "object": "model",
+        "created": 1713945600,
+        "owned_by": "yandex"
+    }
+]
