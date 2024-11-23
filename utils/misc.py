@@ -197,11 +197,11 @@ async def chat_completion_chunk_translation(chunk: dict, deltatext: str, user_id
     except Exception as e:
         raise Exception(f'Error in chat_completion_chunk_translation: {e}')
     
-async def embeddings_translation(embeddings: dict, user_id: str, model: str, b64: bool = False):
+async def embeddings_translation(embeddings: list, user_id: str, model: str, b64: bool = False):
     """
     Translate embeddings from YandexGPT to OpenAI format
     Input:
-    - embeddings: dict
+    - embeddings: list
     - user_id: str
     - model: str
     - b64: bool (default: False)
@@ -209,24 +209,32 @@ async def embeddings_translation(embeddings: dict, user_id: str, model: str, b64
     - new_embeddings: dict
     """
     try:
-        emb = embeddings["embedding"]
-        if b64:
-            byte_array = b''.join(struct.pack('f', x) for x in emb)
-            emb = base64.b64encode(byte_array).decode('utf-8')
-        data = [
-            {
-                "object": "embedding",
-                "embedding": emb,
-                "index": 0
-            }
-        ]
+        i = 0
+        prompt_tokens = 0
+        total_tokens = 0
+        data = []
+        for embedding in embeddings:
+            emb = embedding["embedding"]
+            if b64:
+                byte_array = b''.join(struct.pack('f', x) for x in emb)
+                emb = base64.b64encode(byte_array).decode('utf-8')
+            datum = {
+                    "object": "embedding",
+                    "embedding": emb,
+                    "index": i
+                }
+            prompt_tokens += int(embedding['numTokens'])
+            total_tokens += int(embedding['numTokens'])
+            data.append(datum)
+            i += 1
+
         new_embeddings = {
             "object": "list",
             "data": data,
-            "model": f"{model}_{embeddings['modelVersion'].replace('.', '-')}",
+            "model": f"{model}_{embeddings[0]['modelVersion'].replace('.', '-')}",
             "usage": {
-                "prompt_tokens": int(embeddings['numTokens']),
-                "total_tokens": int(embeddings['numTokens'])
+                "prompt_tokens": prompt_tokens,
+                "total_tokens": total_tokens
             }
         }
         return new_embeddings

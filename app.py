@@ -7,9 +7,9 @@ import os
 import json
 from datetime import datetime
 from dotenv import load_dotenv
-import logging
 import time
 import asyncio
+from typing import Union, List, Any
 
 from utils.misc import get_model_list, messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation, image_generation_translation
 from utils.tokens import get_tokens
@@ -144,6 +144,10 @@ async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict)
     model = chat_completions.model
     if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
         model = "yandexgpt-lite/latest"
+    elif model in ["gpt-4o"]:
+        model = "yandexgpt/latest"
+    else:
+        pass
 
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
@@ -224,8 +228,19 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: d
 # Embeddings
 class Embeddings(BaseModel):
     model: str
-    input: str
+    input: Union[str, List[str]]
     encoding_format: str = "float"
+
+async def fetch_embeddings(url, headers, data):
+    logger.debug(f"Fetching embeddings: {data}")
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            if response.status != 200:
+                logger.error(f"Received error: {response.status} - {await response.text()}")
+                raise HTTPException(status_code=response.status, detail=await response.text())
+            response_data = await response.json()
+            logger.debug(f"Embeddings response: {response_data}")
+            return response_data
 
 @app.post("/v1/embeddings")
 @app.post("/embeddings")
@@ -246,21 +261,31 @@ async def embeddings(embeddings: Embeddings, auth: dict = Depends(authenticate_u
         "x-folder-id": catalogid,
         "x-data-logging-enabled": "false"
     }
-    data = {
-        "modelUri": f"emb://{catalogid}/{model}",
-        "text": embeddings.input,
-    }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, json=data) as response:
-            if response.status != 200:
-                logger.error(f"* User `{user_id}` received error: {response.status} - {await response.text()}")
-                raise HTTPException(status_code=response.status, detail=await response.text())
-            response_data = await response.json()
-            response_data = await embeddings_translation(response_data, user_id, model=model, b64=b64)
-            logger.info(f"* User `{user_id}` received embeddings for model `{model}`")
-            return JSONResponse(content=response_data, media_type="application/json")
-            
+    # Ensure `embeddings.input` is always a list
+    if isinstance(embeddings.input, str):
+        embeddings.input = [embeddings.input]
+    elif not isinstance(embeddings.input, list):
+        logger.error(f"* User `{user_id}` received error: `input` must be a string or a list of strings")
+        raise HTTPException(status_code=400, detail="`input` must be a string or a list of strings")
+
+    results = []
+    for i, text in enumerate(embeddings.input):
+        if not isinstance(text, str):
+            logger.error(f"* User `{user_id}` received error: `input` must be a string or a list of strings")
+            raise HTTPException(status_code=400, detail="`input` must be a string or a list of strings")
+        data = {
+            "modelUri": f"emb://{catalogid}/{model}",
+            "text": text
+        }
+        response_data = await fetch_embeddings(url, headers, data)
+        results.append(response_data)
+
+    response_data = await embeddings_translation(results, user_id, model=model, b64=b64)
+    logger.info(f"* User `{user_id}` received embeddings for model `{model}`")
+    logger.debug(f"Embeddings: {response_data}")
+    return JSONResponse(content=response_data, media_type="application/json")
+        
 # Image generation
 class ImageGeneration(BaseModel):
     model: str

@@ -22,7 +22,6 @@ env/
 .pytest_cache/
 *.log
 *.log.*
-*test.py
 *.jpg
 *.txt
 
