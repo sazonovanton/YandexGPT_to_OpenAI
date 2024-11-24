@@ -187,3 +187,20 @@ response = client.embeddings.create(
 | Y2O_SSL_Cert | SSL certificate path | None |
 | Y2O_CORS_Origins | Allowed CORS origins | * |
 | Y2O_TestToken | Test token for utils/test.py (dev) | None |
+
+
+## Model Aliases
+The translator supports automatic model name mapping from OpenAI to Yandex Foundation Models. However, this models may not have direct equivalents.    
+The following aliases are supported:
+
+### Chat Models
+- `gpt-3.5*` → `yandexgpt-lite/latest`
+- `*mini*` → `yandexgpt-lite/latest`
+- `gpt-4*` → `yandexgpt/latest`
+- `o1*` → `yandexgpt/latest`
+### Embedding Models
+- `text-embedding-3-large` → `text-search-doc/latest`
+- `text-embedding-3-small` → `text-search-query/latest`
+- `text-embedding-ada-002` → `text-search-query/latest`
+### Image Models
+- `dall-e*` → `yandex-art/latest`

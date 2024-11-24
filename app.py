@@ -149,9 +149,9 @@ class ChatCompletions(BaseModel):
     stream: bool = False
 
 async def chat_model_alias(model: str):
-    if "gpt-3.5" in model or "mini" in model:
+    if model.startswith("gpt-3.5") or "mini" in model:
         model = "yandexgpt-lite/latest"
-    elif "gpt-4-" in model or "gpt-4o" in model or "o1" in model:
+    elif model.startswith("gpt-4") or model.startswith("o1"):
         model = "yandexgpt/latest"
     else:
         pass
@@ -264,8 +264,12 @@ async def fetch_embeddings(url, headers, data):
             return response_data
         
 async def embeddings_model_alias(model: str):
-    if model in ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"]:
+    if model in ["text-embedding-3-large"]:
+        model = "text-search-doc/latest"
+    elif model in ["text-embedding-3-small", "text-embedding-ada-002"]:
         model = "text-search-query/latest"
+    else:
+        pass
     return model
 
 @app.post("/v1/embeddings")
