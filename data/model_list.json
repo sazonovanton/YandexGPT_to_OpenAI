@@ -1,10 +1,37 @@
 [
     {
+        "id": "yandexgpt-32k/rc",
+        "name": "YandexGPT Pro 32k (Release Candidate)",
+        "object": "model",
+        "created": 1732395600,
+        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model is a release candidate version (RC) with 32k tokens context window.",
+        "content_length": 32767,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandexgpt/rc",
+        "name": "YandexGPT Pro (Release Candidate)",
+        "object": "model",
+        "created": 1732395600,
+        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model is a release candidate version (RC).",
+        "content_length": 8191,
+        "owned_by": "yandex"
+    },
+    {
         "id": "yandexgpt/latest",
         "name": "YandexGPT Pro",
         "object": "model",
         "created": 1711612800,
         "description": "YandexGPT Pro is a largest version of YandexGPT 3 models. It provides most accurate responses to complex prompts.",
+        "content_length": 8191,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandexgpt/deprcecated",
+        "name": "YandexGPT Pro (Deprecated)",
+        "object": "model",
+        "created": 1711612800,
+        "description": "YandexGPT Pro is a largest version of YandexGPT 3 models. It provides most accurate responses to complex prompts.\nThis model is a deprecated version.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
