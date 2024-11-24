@@ -419,7 +419,7 @@ async def image_generation(image_generation: ImageGeneration, auth: dict = Depen
 
     response_data = await image_generation_translation(response_data, user_id, created_at, b64)
     if not b64:
-        static_images_url = f"{os.getenv('Y2O_ServerURL', 'http://localhost:8000')}/images"
+        static_images_url = f"{os.getenv('Y2O_ServerURL', 'http://127.0.0.1:8520')}/images"
         response_data["data"][0]["url"] = f'{static_images_url}/{response_data["data"][0]["url"]}'
     logger.info(f"* User `{user_id}` received image generation (id: `{operation_id}`).")
     return JSONResponse(content=response_data, media_type="application/json")
