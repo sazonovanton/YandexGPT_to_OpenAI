@@ -1,6 +1,14 @@
 # YandexGPT API to OpenAI API Translator
 A FastAPI server that translates OpenAI API requests to [YandexGPT](https://yandex.cloud/en/services/yandexgpt) and [YandexART](https://yandex.cloud/en/docs/foundation-models/quickstart/yandexart) API requests. This enables you to use tools and applications designed for OpenAI's API with Yandex's language and image generation models.
 
+## Navigation
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Usage Examples](#usage-examples)
+- [Environment Variables](#environment-variables)
+- [Model Aliases](#model-aliases)
+
 ## Features
 - **Text Generation**: Translates OpenAI chat completion requests to YandexGPT
   - ✅ Streaming support
