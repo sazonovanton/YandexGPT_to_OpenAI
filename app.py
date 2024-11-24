@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import aiohttp
 import os
@@ -9,7 +10,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import time
 import asyncio
-from typing import Union, List, Any
+from typing import Union, List
 
 from utils.misc import get_model_list, messages_translation, chat_completion_translation, setup_logging, chat_completion_chunk_translation, embeddings_translation, image_generation_translation
 from utils.tokens import get_tokens
@@ -64,6 +65,15 @@ logger.info(f"=== YandexGPT to OpenAI API translator: Starting server (tokens: {
 app = FastAPI(docs_url=None, redoc_url=None, title="YandexGPT to OpenAI API translator", description="Simple translator from OpenAI API calls to YandexGPT/YandexART API calls")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv('Y2O_CORS_Origins', '*').split(","),
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
 async def authenticate_user(token: str = Depends(oauth2_scheme)):
     auth_response = {
         "user_id": None,
@@ -106,7 +116,6 @@ async def get_creds(auth: dict):
         secretkey = SECRETKEY
     return catalogid, secretkey, user_id
 
-
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.debug(f"Incoming request: {request.method} {request.url}")
@@ -130,6 +139,15 @@ class ChatCompletions(BaseModel):
     messages: list
     stream: bool = False
 
+async def chat_model_alias(model: str):
+    if "gpt-3.5" in model or "mini" in model:
+        model = "yandexgpt-lite/latest"
+    elif "gpt-4-" in model or "gpt-4o" in model or "o1" in model:
+        model = "yandexgpt/latest"
+    else:
+        pass
+    return model
+
 @app.post("/v1/chat/completions")
 @app.post("/chat/completions")
 async def chat_completions(chat_completions: ChatCompletions, auth: dict = Depends(authenticate_user)):
@@ -142,12 +160,7 @@ async def chat_completions(chat_completions: ChatCompletions, auth: dict = Depen
 async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
     catalogid, secretkey, user_id = await get_creds(auth)
     model = chat_completions.model
-    if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
-        model = "yandexgpt-lite/latest"
-    elif model in ["gpt-4o"]:
-        model = "yandexgpt/latest"
-    else:
-        pass
+    model = await chat_model_alias(model)
 
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
@@ -191,8 +204,7 @@ async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict)
 async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
     catalogid, secretkey, user_id = await get_creds(auth)
     model = chat_completions.model
-    if model in ["gpt-4o-mini", "gpt-3.5-turbo"]:
-        model = "yandexgpt-lite/latest"
+    model = await chat_model_alias(model)
 
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
@@ -241,6 +253,11 @@ async def fetch_embeddings(url, headers, data):
             response_data = await response.json()
             logger.debug(f"Embeddings response: {response_data}")
             return response_data
+        
+async def embeddings_model_alias(model: str):
+    if model in ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"]:
+        model = "text-search-query/latest"
+    return model
 
 @app.post("/v1/embeddings")
 @app.post("/embeddings")
@@ -248,11 +265,8 @@ async def embeddings(embeddings: Embeddings, auth: dict = Depends(authenticate_u
     catalogid, secretkey, user_id = await get_creds(auth)
     logger.info(f"* User `{user_id}` requested embeddings for model `{embeddings.model}`")
     model = embeddings.model
+    model = await embeddings_model_alias(model)
     b64 = embeddings.encoding_format == "base64"
-
-    if model in ["text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002"]:
-        logger.info(f"* `{model}` is OpenAI model, using `text-search-query/latest` model")
-        model = "text-search-query/latest"
 
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
     headers = {
@@ -296,6 +310,11 @@ class ImageGeneration(BaseModel):
     response_format: str = "url"
     style: str = None
     timeout: int = 45
+
+async def image_model_alias(model: str):
+    if "dall-e" in model:
+        model = "yandex-art/latest"
+    return model
 
 async def image_generation_request(secretkey: str, catalogid: str, model: str, prompt: str, size: str = "1024x1024"):
     """
@@ -371,12 +390,9 @@ async def image_generation(image_generation: ImageGeneration, auth: dict = Depen
     catalogid, secretkey, user_id = await get_creds(auth)
     logger.info(f"* User `{user_id}` requested image generation via model `{image_generation.model}`")
     model = image_generation.model
+    model = await image_model_alias(model)
     b64 = image_generation.response_format == "b64_json"
     timeout = image_generation.timeout
-
-    if model in ["dall-e-2", "dall-e-3"]:
-        logger.info(f"* `{model}` is OpenAI model, using `yandex-art/latest` model")
-        model = "yandex-art/latest"
 
     # request image generation
     created_at = int(time.time())
