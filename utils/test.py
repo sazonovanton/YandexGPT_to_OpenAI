@@ -1,5 +1,6 @@
 import requests
 from openai import OpenAI
+import base64
 
 import os
 from dotenv import load_dotenv
@@ -7,7 +8,7 @@ load_dotenv()
 
 BASE_URL = "http://localhost:8520"
 BYOC_AUTH = f"{os.getenv('Y2O_CatalogID', 'test')}:{os.getenv('Y2O_SecretKey', 'test')}"
-TOKEN_AUTH = os.getenv('', 'test')
+TOKEN_AUTH = os.getenv('Y2O_TestToken', 'test')
 
 GREEN = '\033[92m'
 RED = '\033[91m'
@@ -36,6 +37,25 @@ class Y2Otest:
             api_key=api_key,
             base_url=self.base_url
         )
+
+    def test_all(self):
+        """Run all tests"""
+        status = {
+            "health": self.test_health(),
+            "models": self.test_models(),
+            "completions": self.test_completions(),
+            "completions_streaming": self.test_completions_streaming(),
+            "embeddings": self.test_embeddings(),
+            "image_generation": self.test_image_generation(),
+        }
+        if all(status.values()):
+            print(f"\n{GREEN}* All tests passed{RESET}")
+        else:
+            print(f"\n{RED}* Some tests failed{RESET}")
+            for k, v in status.items():
+                if not v:
+                    print(f"  - {PINK}{k}{RESET}")
+        print("\n")
 
     def test_health(self):
         """Test the health endpoint"""
@@ -138,16 +158,47 @@ class Y2Otest:
             return True
         except Exception as e:
             print(f"{RED}Failed to generate embeddings:{RESET} {e}")
-            import traceback
-            traceback.print_exc()
+            # import traceback
+            # traceback.print_exc()
             return False
-
+        
+    def test_image_generation(self, model="yandex-art/latest"):
+        """Test the image generation endpoint"""
+        print(f"\n=== {YELLOW}Testing Image Generation{RESET} ===")
+        print(f"Model: `{model}`")
+        try:
+            response = self.client.images.generate(
+                model=model,
+                prompt="A black cat with green eyes, sitting on a wooden floor",
+                size="1024x1024",
+                response_format="b64_json"
+            )
+            b64_image = response.data[0].b64_json
+            print(f"Image generated (b64 length: {len(b64_image)})")
+            with open("test.jpg", "wb") as f:
+                f.write(base64.b64decode(b64_image))
+            print(f"{GREEN}Good{RESET}")
+            return True
+        except Exception as e:
+            print(f"{RED}Failed to generate image:{RESET} {e}")
+            return False
+        
 
 if __name__ == "__main__":
+    print(f"{YELLOW}=== Y2O Testing ==={RESET}")
     test = Y2Otest(base_url=BASE_URL, byoc_auth=BYOC_AUTH, token_auth=TOKEN_AUTH)
-    test.init_client(mode="byoc")
-    test.test_health()
-    test.test_models()
-    test.test_completions()
-    test.test_completions_streaming()
-    test.test_embeddings()
+    try:
+        input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}BYOC{RESET})")
+        test.init_client(mode="byoc")
+        test.test_all()
+    except KeyboardInterrupt:
+        pass
+    try:
+        input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}Token{RESET})")
+        test.init_client(mode="token")
+        test.test_all()
+    except KeyboardInterrupt:
+        pass
+    input(f"Done. Press {GREEN}Enter{RESET} to exit")
+    if os.path.exists("test.jpg"):
+        os.remove("test.jpg")
