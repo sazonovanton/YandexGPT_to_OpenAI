@@ -2,6 +2,9 @@
 A FastAPI server that translates OpenAI API requests to [YandexGPT](https://yandex.cloud/en/services/yandexgpt) and [YandexART](https://yandex.cloud/en/docs/foundation-models/quickstart/yandexart) API requests. This enables you to use tools and applications designed for OpenAI's API with Yandex's language and image generation models.
 
 ## Navigation
+
+English | [Russian](README.ru.md)  
+
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
@@ -197,15 +200,14 @@ response = client.embeddings.create(
 | Y2O_TestToken | Test token for utils/test.py (dev) | None |
 
 
-## Model Aliases
-The translator supports automatic model name mapping from OpenAI to Yandex Foundation Models. However, this models may not have direct equivalents.    
+## OpenAI Model Aliases
+The translator supports automatic model name mapping from OpenAI to Yandex Foundation Models. However, this models may not have direct equivalents. It's recommended to use Yandex model names directly (e.g., `yandexgpt/latest`).  
 The following aliases are supported:
 
 ### Chat Models
 - `gpt-3.5*` → `yandexgpt-lite/latest`
 - `*mini*` → `yandexgpt-lite/latest`
 - `gpt-4*` → `yandexgpt/latest`
-- `o1*` → `yandexgpt/latest`
 ### Embedding Models
 - `text-embedding-3-large` → `text-search-doc/latest`
 - `text-embedding-3-small` → `text-search-query/latest`

@@ -151,7 +151,7 @@ class ChatCompletions(BaseModel):
 async def chat_model_alias(model: str):
     if model.startswith("gpt-3.5") or "mini" in model:
         model = "yandexgpt-lite/latest"
-    elif model.startswith("gpt-4") or model.startswith("o1"):
+    elif model.startswith("gpt-4"):
         model = "yandexgpt/latest"
     else:
         pass
