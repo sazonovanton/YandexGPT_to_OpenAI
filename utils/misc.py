@@ -48,22 +48,87 @@ def get_model_list(path: str = 'data/model_list.json') -> list:
         model_list = json.load(f)
     return model_list
 
+async def tools_translation(tools: list):
+    """
+    Translate tools from OpenAI to YandexGPT format
+    Input:
+    - tools: list of tools in OpenAI format
+    Output:
+    - new_tools: list of tools in YandexGPT format
+    """
+    try:
+        new_tools = []
+        for tool in tools:
+            if tool["type"] == "function":
+                new_tool = {
+                    "function": {
+                        "name": tool["function"]["name"],
+                        "description": tool["function"].get("description", ""),
+                        "parameters": tool["function"]["parameters"]
+                    }
+                }
+                new_tools.append(new_tool)
+        return new_tools
+    except Exception as e:
+        raise Exception(f'Error in tools_translation: {e}')
+
 async def messages_translation(messages: list):
     """
-    Translate messages from YandexGPT to OpenAI  format
+    Translate messages from OpenAI to YandexGPT format
     Input:
-    - messages: list
+    - messages: list of messages in OpenAI format
     Output:
-    - new_messages: list
+    - new_messages: list of messages in YandexGPT format
     """
     try:
         new_messages = []
         for message in messages:
             new_message = {
-                "role": message["role"],
-                "text": message["content"]
+                "role": message["role"]
             }
+
+            # Обработка обычного текстового сообщения
+            if "content" in message and message["content"] is not None:
+                new_message["text"] = message["content"]
+
+            # Обработка tool_calls (если есть)
+            if "tool_calls" in message:
+                new_message["toolCallList"] = {
+                    "toolCalls": [
+                        {
+                            "functionCall": {
+                                "name": tool_call["function"]["name"],
+                                "arguments": tool_call["function"]["arguments"]
+                            }
+                        }
+                        for tool_call in message["tool_calls"]
+                    ]
+                }
+
+            # Обработка function_call (устаревший формат OpenAI)
+            elif "function_call" in message:
+                new_message["toolCallList"] = {
+                    "toolCalls": [{
+                        "functionCall": {
+                            "name": message["function_call"]["name"],
+                            "arguments": message["function_call"]["arguments"]
+                        }
+                    }]
+                }
+
+            # Обработка результатов выполнения функций
+            if "function_name" in message and "content" in message:
+                new_message["toolResultList"] = {
+                    "toolResults": [{
+                        "functionResult": {
+                            "name": message["function_name"],
+                            "content": message["content"]
+                        }
+                    }]
+                }
+
             new_messages.append(new_message)
+        
         return new_messages
     except KeyboardInterrupt:
         raise KeyboardInterrupt
@@ -79,14 +144,6 @@ async def finish_reason_translation(finish_reason):
     - new_finish_reason: str
     """
     try:
-        # finish_reasons = {
-        #     "stop": "ALTERNATIVE_STATUS_FINAL",
-        #     "length": "ALTERNATIVE_STATUS_TRUNCATED_FINAL",
-        #     "content_filter": "ALTERNATIVE_STATUS_CONTENT_FILTER",
-        #     "incomplete": "ALTERNATIVE_STATUS_PARTIAL",
-        #     "unknown": "ALTERNATIVE_STATUS_UNSPECIFIED",
-        #     "tool_calls": "ALTERNATIVE_STATUS_TOOLS" # Not implemented in YandexGPT, just placeholder
-        # }
         finish_reasons = {
             "ALTERNATIVE_STATUS_FINAL": "stop",
             "ALTERNATIVE_STATUS_TRUNCATED_FINAL": "length",
@@ -94,7 +151,7 @@ async def finish_reason_translation(finish_reason):
             # "ALTERNATIVE_STATUS_PARTIAL": "incomplete",
             "ALTERNATIVE_STATUS_PARTIAL": None,
             "ALTERNATIVE_STATUS_UNSPECIFIED": "unknown",
-            "ALTERNATIVE_STATUS_TOOLS": "tool_calls" # Not implemented in YandexGPT, just placeholder
+            "ALTERNATIVE_STATUS_TOOL_CALLS": "tool_calls" 
         }
         new_finish_reason = finish_reasons[finish_reason]
         return new_finish_reason
@@ -114,23 +171,55 @@ async def chat_completion_translation(chat_completion: dict, user_id: str, model
     - new_chat_completion: dict
     """
     try:
-        alternatives = chat_completion["result"]["alternatives"] # List of alternatives from YandexGPT
-        choices = [] # List of choices for OpenAI
+        alternatives = chat_completion["result"]["alternatives"]
+        choices = []
+        current_time = int(time.time())
         i = 0
         for choice in alternatives:
             new_choice = {
                 "index": i,
                 "message": {
                     "role": choice["message"]["role"],
-                    "content": choice["message"]["text"]
                 },
                 "logprobs": None,
                 "finish_reason": await finish_reason_translation(choice["status"])
             }
+
+            if "text" in choice["message"]:
+                new_choice["message"]["content"] = choice["message"]["text"]
+            else:
+                new_choice["message"]["content"] = None
+
+            if "toolCallList" in choice["message"]:
+                tool_calls = []
+                for idx, tool_call in enumerate(choice["message"]["toolCallList"]["toolCalls"]):
+                    if "functionCall" in tool_call:
+                        arguments = tool_call["functionCall"]["arguments"]
+                        if isinstance(arguments, dict):
+                            arguments = json.dumps(arguments)
+
+                        new_tool_call = {
+                            "id": f"call_{current_time}_{i}_{idx}",
+                            "type": "function",
+                            "function": {
+                                "name": tool_call["functionCall"]["name"],
+                                "arguments": arguments
+                            }
+                        }
+                        tool_calls.append(new_tool_call)
+                if tool_calls:
+                    new_choice["message"]["tool_calls"] = tool_calls
+
+            if "toolResultList" in choice["message"]:
+                function_results = choice["message"]["toolResultList"]["toolResults"]
+                if function_results:
+                    new_choice["message"]["function_name"] = function_results[0]["functionResult"]["name"]
+                    new_choice["message"]["content"] = function_results[0]["functionResult"]["content"]
+
             i += 1
             choices.append(new_choice)
+
         userhash = hashlib.md5(user_id.encode()).hexdigest() if user_id else "none"
-        current_time = int(time.time())
         new_chat_completion = {
             "id": f"y2o-{userhash}{current_time}",
             "model": f"{model}-{chat_completion['result']['modelVersion'].replace('.', '-')}",

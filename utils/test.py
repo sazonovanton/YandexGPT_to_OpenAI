@@ -1,6 +1,7 @@
 import requests
 from openai import OpenAI
 import base64
+import json
 
 import os
 from dotenv import load_dotenv
@@ -18,12 +19,18 @@ PINK = '\033[95m'
 RESET = '\033[0m'
 
 class Y2Otest:
-    def __init__(self, base_url="http://localhost:8520", byoc_auth=None, token_auth=None):
+    def __init__(self, base_url="http://localhost:8520", byoc_auth=None, token_auth=None, proxy=None):
         self.base_url = base_url
         self.byoc_auth = byoc_auth
         self.token_auth = token_auth
         self.client = None
-    
+        if proxy:
+            print(f"{CYAN}Initializing proxy client{RESET}")
+            import httpx
+            self.proxy = httpx.Client(proxy=proxy)
+        else:
+            self.proxy = None
+
     def init_client(self, mode="byoc"):
         if mode == "byoc":
             print(f"{CYAN}Initializing client with {PINK}BYOC{CYAN} auth{RESET}")
@@ -35,7 +42,8 @@ class Y2Otest:
             raise ValueError("Invalid mode. Must be 'byoc' or 'token'")
         self.client = OpenAI(
             api_key=api_key,
-            base_url=self.base_url
+            base_url=self.base_url,
+            http_client=self.proxy
         )
 
     def test_all(self):
@@ -47,6 +55,7 @@ class Y2Otest:
             "completions_streaming": self.test_completions_streaming(),
             "embeddings": self.test_embeddings(),
             "image_generation": self.test_image_generation(),
+            "tools": self.test_tools()
         }
         if all(status.values()):
             print(f"\n{GREEN}* All tests passed{RESET}")
@@ -183,22 +192,87 @@ class Y2Otest:
             print(f"{RED}Failed to generate image:{RESET} {e}")
             return False
         
+    def test_tools(self, model="yandexgpt/latest"):
+        """Test the tools usage via chat completion"""
+        """
+        Response: ChatCompletion(id='gen-1732990740-dXrJnECjx2HoHgyzVRvW', choices=[Choice(finish_reason='tool_calls', index=0, logprobs=None, message=ChatCompletionMessage(content=None, refusal=None, role='assistant', function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_g6zvbyZlPrvLQj9GAybl6WCh', function=Function(arguments='{"query":"London"}', name='weather_request'), type='function', index=0)]))], created=1732990740, model='openai/gpt-4o-mini', object='chat.completion', service_tier=None, system_fingerprint='fp_0705bf87c0', usage=CompletionUsage(completion_tokens=14, prompt_tokens=53, total_tokens=67, completion_tokens_details=None), provider='OpenAI')
+        """
+        print(f"\n=== {YELLOW}Testing Tools{RESET} ===")
+        try:
+            weather = {
+                        "type": "function",
+                        "function": {
+                            "name": "weather_request",
+                            "description": "Get weather information for a city",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "City name"
+                                    }
+                                },
+                                "required": ["query"],
+                            }
+                        }
+                    }
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Get the weather in London",
+                    }
+                ],
+                tools=[weather],
+                tool_choice="auto"
+            )
+
+            tool_calls = response.choices[0].message.tool_calls
+            name = tool_calls[0].function.name
+            arg = json.loads(tool_calls[0].function.arguments)
+            tid = tool_calls[0].id
+            print(f"Tool called: {name}(query={arg['query']}) - id: {tid}")
+            print(f"Model: {response.model} (requested: {model})")
+            if name == "weather_request" and arg["query"] == "London":
+                print(f"{GREEN}Good{RESET}")
+                return True
+            else:
+                print(f"{RED}Tool call failed{RESET}")
+                return False
+        except Exception as e:
+            print(f"{RED}Failed to use tool:{RESET} {e}")
+            print(f"Response: {response}")
+            return False
+
+# if __name__ == "__main__":
+#     print(f"{YELLOW}=== Y2O Testing ==={RESET}")
+#     test = Y2Otest(base_url=BASE_URL, byoc_auth=BYOC_AUTH, token_auth=TOKEN_AUTH)
+#     test.init_client(mode="token")
+#     try:
+#         input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}BYOC{RESET})")
+#         test.init_client(mode="byoc")
+#         test.test_all()
+#     except KeyboardInterrupt:
+#         pass
+#     try:
+#         input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}Token{RESET})")
+#         test.init_client(mode="token")
+#         test.test_all()
+#     except KeyboardInterrupt:
+#         pass
+#     input(f"Done. Press {GREEN}Enter{RESET} to exit")
+#     if os.path.exists("test.jpg"):
+#         os.remove("test.jpg")
 
 if __name__ == "__main__":
     print(f"{YELLOW}=== Y2O Testing ==={RESET}")
     test = Y2Otest(base_url=BASE_URL, byoc_auth=BYOC_AUTH, token_auth=TOKEN_AUTH)
-    try:
-        input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}BYOC{RESET})")
-        test.init_client(mode="byoc")
-        test.test_all()
-    except KeyboardInterrupt:
-        pass
-    try:
-        input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}Token{RESET})")
-        test.init_client(mode="token")
-        test.test_all()
-    except KeyboardInterrupt:
-        pass
-    input(f"Done. Press {GREEN}Enter{RESET} to exit")
-    if os.path.exists("test.jpg"):
-        os.remove("test.jpg")
+    # test = Y2Otest(base_url="https://openrouter.ai/api/v1", 
+    #                byoc_auth=BYOC_AUTH, 
+    #                token_auth=TOKEN_AUTH,
+    #                proxy=os.getenv('Y2O_Proxy', None)
+    #                )
+    test.init_client(mode="token")
+    # test.test_tools(model="openai/gpt-4o-mini")
+    test.test_tools(model="yandexgpt/rc")

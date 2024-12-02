@@ -3,7 +3,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Union, List
+from typing import Optional, List, Union, Literal
 
 import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -141,12 +141,28 @@ async def log_requests(request: Request, call_next):
 ####################################
 
 # Chat completions
+class FunctionParameters(BaseModel):
+    type: str
+    properties: dict
+    required: Optional[List[str]]
+
+class FunctionDefinition(BaseModel):
+    name: str
+    description: Optional[str]
+    parameters: FunctionParameters
+
+class Tool(BaseModel):
+    type: Literal["function"]
+    function: FunctionDefinition
+
 class ChatCompletions(BaseModel):
     model: str
-    max_tokens: int = None
+    max_tokens: Optional[int] = None
     temperature: float = 0.7
     messages: list
     stream: bool = False
+    tools: Optional[List[Tool]] = None
+    tool_choice: Optional[Union[str, dict]] = None
 
 async def chat_model_alias(model: str):
     if model.startswith("gpt-3.5") or "mini" in model:
@@ -165,6 +181,22 @@ async def chat_completions(chat_completions: ChatCompletions, auth: dict = Depen
         return StreamingResponse(stream_chat_completions(chat_completions, auth), media_type="text/event-stream")
     else:
         return await non_stream_chat_completions(chat_completions, auth)
+
+# @app.post("/v1/chat/completions")
+# @app.post("/chat/completions") 
+# async def chat_completions(request: Request, chat_completions: ChatCompletions, auth: dict = Depends(authenticate_user)):
+#     # Debug raw request
+#     body = await request.body()
+#     headers = request.headers
+#     logger.debug(f"Raw request body: {body.decode()}")
+#     # {"messages": [{"role": "user", "content": "Get the weather in London"}], "model": "yandexgpt/latest", "tool_choice": "auto", "tools": [{"type": "function", "function": {"name": "weather_request", "description": "Get weather information for a city", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "City name"}}, "required": ["query"]}}}]}
+#     logger.debug(f"Request headers: {dict(headers)}")
+    
+#     logger.info(f"* User requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
+#     if chat_completions.stream:
+#         return StreamingResponse(stream_chat_completions(chat_completions, auth), media_type="text/event-stream")
+#     else:
+#         return await non_stream_chat_completions(chat_completions, auth)
 
 async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
     catalogid, secretkey, user_id = await get_creds(auth)
@@ -187,6 +219,12 @@ async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict)
         },
         "messages": await messages_translation(chat_completions.messages)
     }
+
+    if chat_completions.tools:
+        data["tools"] = [tool.model_dump() for tool in chat_completions.tools]
+    if chat_completions.tool_choice:
+        data["tool_choice"] = chat_completions.tool_choice
+        
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             if response.status != 200:
@@ -231,13 +269,21 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: d
         },
         "messages": await messages_translation(chat_completions.messages)
     }
+
+    if chat_completions.tools:
+        data["tools"] = [tool.model_dump() for tool in chat_completions.tools]
+    if chat_completions.tool_choice:
+        data["tool_choice"] = chat_completions.tool_choice
+
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             if response.status != 200:
                 logger.error(f"* User `{user_id}` received error: {response.status} - {await response.text()}")
                 raise HTTPException(status_code=response.status, detail=await response.text())
             response_data = await response.json()
+            print(response_data)
             response_data = await chat_completion_translation(response_data, user_id, model)
+            print(response_data)
             logger.info(f"* User `{user_id}` received chat completions (id: `{response_data['id']}`). Tokens used (prompt/completion/total): {response_data['usage']['prompt_tokens']}/{response_data['usage']['completion_tokens']}/{response_data['usage']['total_tokens']}")
             new_headers = {
                 "Date": f"{datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')}",
