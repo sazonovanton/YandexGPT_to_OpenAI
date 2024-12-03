@@ -182,22 +182,6 @@ async def chat_completions(chat_completions: ChatCompletions, auth: dict = Depen
     else:
         return await non_stream_chat_completions(chat_completions, auth)
 
-# @app.post("/v1/chat/completions")
-# @app.post("/chat/completions") 
-# async def chat_completions(request: Request, chat_completions: ChatCompletions, auth: dict = Depends(authenticate_user)):
-#     # Debug raw request
-#     body = await request.body()
-#     headers = request.headers
-#     logger.debug(f"Raw request body: {body.decode()}")
-#     # {"messages": [{"role": "user", "content": "Get the weather in London"}], "model": "yandexgpt/latest", "tool_choice": "auto", "tools": [{"type": "function", "function": {"name": "weather_request", "description": "Get weather information for a city", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "City name"}}, "required": ["query"]}}}]}
-#     logger.debug(f"Request headers: {dict(headers)}")
-    
-#     logger.info(f"* User requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
-#     if chat_completions.stream:
-#         return StreamingResponse(stream_chat_completions(chat_completions, auth), media_type="text/event-stream")
-#     else:
-#         return await non_stream_chat_completions(chat_completions, auth)
-
 async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
     catalogid, secretkey, user_id = await get_creds(auth)
     model = chat_completions.model

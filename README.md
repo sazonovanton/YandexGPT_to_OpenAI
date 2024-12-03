@@ -10,12 +10,12 @@ English | [Russian](README.ru.md)
 - [Setup](#setup)
 - [Usage Examples](#usage-examples)
 - [Environment Variables](#environment-variables)
-- [Model Aliases](#model-aliases)
+- [OpenAI Model Aliases](#openai-model-aliases)
 
 ## Features
 - **Text Generation**: Translates OpenAI chat completion requests to YandexGPT
   - ✅ Streaming support
-  - ✅ Tools (non-streaming)
+  - ✅ Tools (non-streaming - done, streaming - in development)
   - ⬜ Vision (not supported)
 - **Text Embeddings**: Converts embedding requests to Yandex's text vectorization models
   - ✅ Supports both `float` and `base64` encoding formats
