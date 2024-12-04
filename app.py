@@ -3,7 +3,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Union, List
+from typing import Optional, List, Union, Literal
 
 import aiohttp
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from utils.misc import (
     chat_completion_chunk_translation,
+    chat_completion_chunk_tool_translation,
     chat_completion_translation,
     embeddings_translation,
     get_model_list,
@@ -141,12 +142,28 @@ async def log_requests(request: Request, call_next):
 ####################################
 
 # Chat completions
+class FunctionParameters(BaseModel):
+    type: str
+    properties: dict
+    required: Optional[List[str]]
+
+class FunctionDefinition(BaseModel):
+    name: str
+    description: Optional[str]
+    parameters: FunctionParameters
+
+class Tool(BaseModel):
+    type: Literal["function"]
+    function: FunctionDefinition
+
 class ChatCompletions(BaseModel):
     model: str
-    max_tokens: int = None
+    max_tokens: Optional[int] = None
     temperature: float = 0.7
     messages: list
     stream: bool = False
+    tools: Optional[List[Tool]] = None
+    tool_choice: Optional[Union[str, dict]] = None
 
 async def chat_model_alias(model: str):
     if model.startswith("gpt-3.5") or "mini" in model:
@@ -187,28 +204,54 @@ async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict)
         },
         "messages": await messages_translation(chat_completions.messages)
     }
+
+    if chat_completions.tools:
+        data["tools"] = [tool.model_dump() for tool in chat_completions.tools]
+    if chat_completions.tool_choice:
+        data["tool_choice"] = chat_completions.tool_choice
+
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             if response.status != 200:
                 logger.error(f"* User `{user_id}` received error: {response.status} - {await response.text()}")
                 raise HTTPException(status_code=response.status, detail=await response.text())
             now = time.time()
-            i = 0
             str_index = 0
             async for chunk in response.content.iter_any():
                 if chunk:
                     chunk_text = chunk.decode('utf-8')
                     try:
                         data = json.loads(chunk_text)
-                        deltatext = data['result']['alternatives'][0]['message']['text'][str_index:]
-                        str_index = len(data['result']['alternatives'][0]['message']['text'])
-                        new_chunk = await chat_completion_chunk_translation(data, deltatext, user_id, model, timestamp=now)
-                        logger.info(f"* User `{user_id}` received chat completion chunk (id: `{new_chunk['id']}`).")
-                        # yield json.dumps(new_chunk)
-                        yield f"data: {json.dumps(new_chunk)}\n\n"
+                        message = data['result']['alternatives'][0]['message']
+
+                        if 'text' in message:
+                            # Handle standard text response
+                            deltatext = message['text'][str_index:]
+                            str_index = len(message['text'])
+                            new_chunk = await chat_completion_chunk_translation(data, deltatext, user_id, model, timestamp=now)
+                            yield f"data: {json.dumps(new_chunk)}\n\n"
+                        
+                        elif 'toolCallList' in message:
+                            # Handle tool calls
+                            tool_calls = message['toolCallList']['toolCalls']
+                            for tool_call in tool_calls:
+                                if 'functionCall' in tool_call:
+                                    arguments = tool_call['functionCall'].get('arguments', {})
+                                    if isinstance(arguments, dict):
+                                        arguments = json.dumps(arguments)
+                                        
+                                    tool_function_call = {
+                                        "id": f"call_{int(now)}_{hash(str(tool_call))}",
+                                        "name": tool_call['functionCall']['name'],
+                                        "arguments": arguments
+                                    }
+                                    
+                                    new_chunk = await chat_completion_chunk_tool_translation(
+                                        data, tool_function_call, user_id, model, timestamp=now)
+                                    yield f"data: {json.dumps(new_chunk)}\n\n"
                     except json.JSONDecodeError:
-                        # Handle chunk that might not be complete JSON
-                        pass
+                        # Skip incomplete JSON chunks
+                        continue
 
 async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: dict):
     catalogid, secretkey, user_id = await get_creds(auth)
@@ -231,6 +274,12 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: d
         },
         "messages": await messages_translation(chat_completions.messages)
     }
+
+    if chat_completions.tools:
+        data["tools"] = [tool.model_dump() for tool in chat_completions.tools]
+    if chat_completions.tool_choice:
+        data["tool_choice"] = chat_completions.tool_choice
+
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             if response.status != 200:
