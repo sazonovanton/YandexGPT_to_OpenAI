@@ -15,7 +15,7 @@ English | [Russian](README.ru.md)
 ## Features
 - **Text Generation**: Translates OpenAI chat completion requests to YandexGPT
   - ✅ Streaming support
-  - ✅ Tools/Function calling - with YandexGPT 4 models
+  - ✅ Tools/Function calling - with YandexGPT 4 models (for now only `yandexgpt/rc`)
   - ⬜ Vision (not supported)
 - **Text Embeddings**: Converts embedding requests to Yandex's text vectorization models
   - ✅ Supports both `float` and `base64` encoding formats
