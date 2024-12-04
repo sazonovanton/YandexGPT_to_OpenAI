@@ -60,6 +60,7 @@ class Y2Otest:
             "embeddings": self.test_embeddings(model=embed_model) if embed_model else None,
             "image_generation": self.test_image_generation(model=image_model) if image_model else None,
             "tools": self.test_tools(model=text_model) if tools and text_model else None,
+            "tools_streaming": self.test_tools_streaming(model=text_model) if tools and text_model else None,
         }
         status = {k: v for k, v in status.items() if v is not None}
         if all(status.values()):
@@ -250,7 +251,6 @@ class Y2Otest:
             print(f"Response: {response}")
             return False
         
-        
     def test_tools_streaming(self, model="yandexgpt/latest"):
         """Test the tools usage via chat completion"""
         """
@@ -290,9 +290,10 @@ class Y2Otest:
             reply=""
             tools=[]
             for chunk in stream:
+                # print(chunk)
                 if chunk.choices[0].delta.content:
                     reply += chunk.choices[0].delta.content        
-                    print(chunk.choices[0].delta.content, end="")  
+                    # print(chunk.choices[0].delta.content, end="")  
                 if chunk.choices[0].delta.tool_calls:
                     tools += chunk.choices[0].delta.tool_calls
 
@@ -321,12 +322,15 @@ class Y2Otest:
             print(f"{GREEN}Good{RESET}")
         except Exception as e:
             print(f"{RED}Failed to use tool:{RESET} {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
 if __name__ == "__main__":
     print(f"{YELLOW}=== Y2O Testing ==={RESET}")
-    test = Y2Otest(base_url=BASE_URL, byoc_auth=BYOC_AUTH, token_auth=TOKEN_AUTH)
-    test.init_client(mode="token")
+    test = Y2Otest(base_url=BASE_URL, 
+                   byoc_auth=BYOC_AUTH, 
+                   token_auth=TOKEN_AUTH)
     try:
         input(f"Press {GREEN}Enter{RESET} to start testing or {RED}Ctrl+C{RESET} to pass ({PINK}BYOC{RESET})")
         test.init_client(mode="byoc")
@@ -352,6 +356,4 @@ if __name__ == "__main__":
 #                    proxy=os.getenv('Y2O_Proxy', None)
 #                    )
 #     test.init_client(mode="token")
-#     # test.test_tools(model="openai/gpt-4o-mini")
-#     # test.test_tools(model="yandexgpt/rc")
 #     test.test_tools_streaming(model="openai/gpt-4o-mini")

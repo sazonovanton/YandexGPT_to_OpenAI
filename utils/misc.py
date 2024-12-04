@@ -286,6 +286,73 @@ async def chat_completion_chunk_translation(chunk: dict, deltatext: str, user_id
     except Exception as e:
         raise Exception(f'Error in chat_completion_chunk_translation: {e}')
     
+async def chat_completion_chunk_tool_translation(chunk: dict, tool_function_call: dict, user_id: str, model: str, timestamp: int):
+    """
+    Translate chat completion chunk with tools from YandexGPT to OpenAI format
+    
+    Input:
+    - chunk: dict (original YandexGPT response chunk)
+    - tool_function_call: dict (tool/function call data)
+    - user_id: str (user identifier)
+    - model: str (model name)
+    - timestamp: int (current timestamp)
+    
+    Output:
+    - dict in OpenAI streaming format
+    """
+    try:
+        # Create base structure
+        userhash = hashlib.md5(user_id.encode()).hexdigest() if user_id else "none"
+        
+        # Ensure arguments are JSON string
+        arguments = tool_function_call.get("arguments", {})
+        if isinstance(arguments, dict):
+            arguments = json.dumps(arguments)
+        
+        # Initialize the choice delta structure
+        tool_call = {
+            "index": 0,
+            "id": tool_function_call.get("id", f"call_{timestamp}_{hash(str(tool_function_call))}"),
+            "function": {
+                "name": tool_function_call.get("name"),
+                "arguments": arguments
+            },
+            "type": "function"
+        }
+
+        choice_delta = {
+            "content": None,
+            "role": "assistant",
+            "tool_calls": [tool_call]
+        }
+
+        # Build the complete chunk structure
+        new_chat_chunk_completion = {
+            "id": f"y2o-{userhash}{timestamp}",
+            "model": f"{model}-{chunk['result']['modelVersion'].replace('.', '-')}",
+            "object": "chat.completion.chunk",
+            "created": timestamp,
+            "choices": [{
+                "index": 0,
+                "delta": choice_delta,
+                "finish_reason": "tool_calls"
+            }],
+            "system_fingerprint": f"fp_{userhash}"
+        }
+
+        # Add usage information if present
+        if "usage" in chunk.get("result", {}):
+            new_chat_chunk_completion["usage"] = {
+                "completion_tokens": int(chunk["result"]["usage"].get("completionTokens", 0)),
+                "prompt_tokens": int(chunk["result"]["usage"].get("inputTextTokens", 0)),
+                "total_tokens": int(chunk["result"]["usage"].get("totalTokens", 0))
+            }
+
+        return new_chat_chunk_completion
+
+    except Exception as e:
+        raise Exception(f'Error in chat_completion_chunk_tool_translation: {e}')
+
 async def embeddings_translation(embeddings: list, user_id: str, model: str, b64: bool = False):
     """
     Translate embeddings from YandexGPT to OpenAI format
