@@ -15,7 +15,7 @@ English | [Russian](README.ru.md)
 ## Features
 - **Text Generation**: Translates OpenAI chat completion requests to YandexGPT
   - ✅ Streaming support
-  - ✅ Tools/Functions calling - with YandexGPT 4 models
+  - ✅ Tools/Function calling - with YandexGPT 4 models
   - ⬜ Vision (not supported)
 - **Text Embeddings**: Converts embedding requests to Yandex's text vectorization models
   - ✅ Supports both `float` and `base64` encoding formats
@@ -107,7 +107,7 @@ Y2O_SSL_Cert=ssl/cert.pem
 
 ## Usage Examples
 
-You can test API with your own keys (see [BYOK](#b-bring-your-own-key-byok)) base URL `https://sazonovanton.online:8520/v1`.  
+You can test API with your own keys (see [BYOK](#b-bring-your-own-key-byok)) setting base URL `https://sazonovanton.online:8520/v1`.  
 Logging level is set to `INFO`, your keys will not be stored.  
 
 ### Chat Completion

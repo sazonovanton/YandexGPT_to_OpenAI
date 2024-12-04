@@ -3,8 +3,17 @@
         "id": "yandexgpt-32k/rc",
         "name": "YandexGPT Pro 32k (Release Candidate)",
         "object": "model",
-        "created": 1732395600,
+        "created": 1732435200,
         "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model is a release candidate version (RC) with 32k tokens context window.",
+        "content_length": 32767,
+        "owned_by": "yandex"
+    },
+    {
+        "id": "yandexgpt-32k/latest",
+        "name": "YandexGPT Pro 32k",
+        "object": "model",
+        "created": 1732435200,
+        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model has 32k tokens context window.",
         "content_length": 32767,
         "owned_by": "yandex"
     },
@@ -12,7 +21,7 @@
         "id": "yandexgpt/rc",
         "name": "YandexGPT Pro (Release Candidate)",
         "object": "model",
-        "created": 1732395600,
+        "created": 1732435200,
         "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model is a release candidate version (RC).",
         "content_length": 8191,
         "owned_by": "yandex"
@@ -21,8 +30,8 @@
         "id": "yandexgpt/latest",
         "name": "YandexGPT Pro",
         "object": "model",
-        "created": 1711612800,
-        "description": "YandexGPT Pro is a largest version of YandexGPT 3 models. It provides most accurate responses to complex prompts.",
+        "created": 1732435200,
+        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -40,7 +49,7 @@
         "name": "YandexGPT Lite (Release Candidate)",
         "object": "model",
         "created": 1711612800,
-        "description": "YandexGPT Lite is a standard version of YandexGPT models (YandexGPT generation 3). It suitable for solvitng tasks in real time.\nThis model is a release candidate version (RC).",
+        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It suitable for solvitng tasks in real time.\nThis model is a release candidate version (RC).",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -49,7 +58,7 @@
         "name": "YandexGPT Lite",
         "object": "model",
         "created": 1711612800,
-        "description": "YandexGPT Lite is a standard version of YandexGPT models (YandexGPT generation 3). It suitable for solvitng tasks in real time.",
+        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It suitable for solvitng tasks in real time.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -58,18 +67,27 @@
         "name": "YandexGPT Lite (Deprecated)",
         "object": "model",
         "created": 1711612800,
-        "description": "YandexGPT Lite is a standard version of YandexGPT models (YandexGPT generation 2). It suitable for solvitng tasks in real time.\nThis model is a deprecated version.",
+        "description": "YandexGPT Lite is a standard version of YandexGPT 3 models. It suitable for solvitng tasks in real time.\nThis model is a deprecated version.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
     {
-        "id": "summarization/latest",
-        "name": "YandexGPT - Summarization Model",
+        "id": "llama-lite/latest",
+        "name": "Llama 8b",
         "object": "model",
-        "created": 1711612800,
-        "description": "Special summary model based on YandexGPT Lite (YandexGPT generation 2).",
+        "created": 1727211600,
+        "description": "Llama 8B is a lightweight version of Llama 3.1 models with 8B parameters.",
         "content_length": 8191,
-        "owned_by": "yandex"
+        "owned_by": "meta"
+    },
+    {
+        "id": "llama/latest",
+        "name": "Llama 70b",
+        "object": "model",
+        "created": 1727211600,
+        "description": "Llama 70B is a large version of Llama 3.1 models with 70B parameters.",
+        "content_length": 8191,
+        "owned_by": "meta"
     },
     {
         "id": "text-search-doc/latest",
