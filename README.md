@@ -107,6 +107,9 @@ Y2O_SSL_Cert=ssl/cert.pem
 
 ## Usage Examples
 
+You can test API with your own keys (see [BYOK](#b-bring-your-own-key-byok)) base URL `https://sazonovanton.online:8520/v1`.  
+Logging level is set to `INFO`, your keys will not be stored.  
+
 ### Chat Completion
 #### Python
 ```python
