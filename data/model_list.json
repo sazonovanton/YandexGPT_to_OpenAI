@@ -1,19 +1,19 @@
 [
     {
-        "id": "yandexgpt-32k/rc",
-        "name": "YandexGPT Pro 32k (Release Candidate)",
+        "id": "yandexgpt-32k/latest",
+        "name": "YandexGPT Pro 32k",
         "object": "model",
-        "created": 1732435200,
-        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model is a release candidate version (RC) with 32k tokens context window.",
+        "created": 1740463200,
+        "description": "YandexGPT Pro is the largest version of YandexGPT 4 models. It provides the most accurate responses to complex prompts.\nThis model has a 32k tokens context window.",
         "content_length": 32767,
         "owned_by": "yandex"
     },
     {
-        "id": "yandexgpt-32k/latest",
+        "id": "yandexgpt-32k/deprecated",
         "name": "YandexGPT Pro 32k",
         "object": "model",
-        "created": 1732435200,
-        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model has 32k tokens context window.",
+        "created": 1740463200,
+        "description": "YandexGPT Pro is the largest version of YandexGPT 4 models. It provides the most accurate responses to complex prompts.\nThis model has a 32k tokens context window. This model is a deprecated version.",
         "content_length": 32767,
         "owned_by": "yandex"
     },
@@ -21,26 +21,26 @@
         "id": "yandexgpt/rc",
         "name": "YandexGPT Pro (Release Candidate)",
         "object": "model",
-        "created": 1732435200,
-        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.\nThis model is a release candidate version (RC).",
-        "content_length": 8191,
+        "created": 1740463200,
+        "description": "YandexGPT Pro is the largest version of YandexGPT 5 models. It provides the most accurate responses to complex prompts.\nThis model is a release candidate version (RC).",
+        "content_length": 32767,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt/latest",
         "name": "YandexGPT Pro",
         "object": "model",
-        "created": 1732435200,
-        "description": "YandexGPT Pro is a largest version of YandexGPT 4 models. It provides most accurate responses to complex prompts.",
+        "created": 1740463200,
+        "description": "YandexGPT Pro is the largest version of YandexGPT 4 models. It provides the most accurate responses to complex prompts.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
     {
-        "id": "yandexgpt/deprcecated",
+        "id": "yandexgpt/deprecated",
         "name": "YandexGPT Pro (Deprecated)",
         "object": "model",
-        "created": 1711612800,
-        "description": "YandexGPT Pro is a largest version of YandexGPT 3 models. It provides most accurate responses to complex prompts.\nThis model is a deprecated version.",
+        "created": 1740463200,
+        "description": "YandexGPT Pro is the largest version of YandexGPT 4 models. It provides the most accurate responses to complex prompts.\nThis model is a deprecated version.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -48,8 +48,8 @@
         "id": "yandexgpt-lite/rc",
         "name": "YandexGPT Lite (Release Candidate)",
         "object": "model",
-        "created": 1711612800,
-        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It suitable for solvitng tasks in real time.\nThis model is a release candidate version (RC).",
+        "created": 1740463200,
+        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It is suitable for solving tasks in real time.\nThis model is a release candidate version (RC).",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -57,8 +57,8 @@
         "id": "yandexgpt-lite/latest",
         "name": "YandexGPT Lite",
         "object": "model",
-        "created": 1711612800,
-        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It suitable for solvitng tasks in real time.",
+        "created": 1740463200,
+        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It is suitable for solving tasks in real time.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -66,8 +66,8 @@
         "id": "yandexgpt-lite/deprecated",
         "name": "YandexGPT Lite (Deprecated)",
         "object": "model",
-        "created": 1711612800,
-        "description": "YandexGPT Lite is a standard version of YandexGPT 3 models. It suitable for solvitng tasks in real time.\nThis model is a deprecated version.",
+        "created": 1740463200,
+        "description": "YandexGPT Lite is a standard version of YandexGPT 4 models. It is suitable for solving tasks in real time.\nThis model is a deprecated version.",
         "content_length": 8191,
         "owned_by": "yandex"
     },
@@ -81,11 +81,47 @@
         "owned_by": "meta"
     },
     {
+        "id": "llama-lite/deprecated",
+        "name": "Llama 8b (Deprecated)",
+        "object": "model",
+        "created": 1727211600,
+        "description": "Llama 8B is a lightweight version of Llama 3.1 models with 8B parameters. This model is a deprecated version.",
+        "content_length": 8191,
+        "owned_by": "meta"
+    },
+    {
+        "id": "llama-lite/rc",
+        "name": "Llama 8b (Release Candidate)",
+        "object": "model",
+        "created": 1727211600,
+        "description": "Llama 8B is a lightweight version of Llama 3.1 models with 8B parameters. This model is a release candidate version.",
+        "content_length": 8191,
+        "owned_by": "meta"
+    },
+    {
         "id": "llama/latest",
         "name": "Llama 70b",
         "object": "model",
         "created": 1727211600,
         "description": "Llama 70B is a large version of Llama 3.1 models with 70B parameters.",
+        "content_length": 8191,
+        "owned_by": "meta"
+    },
+    {
+        "id": "llama/deprecated",
+        "name": "Llama 70b (Deprecated)",
+        "object": "model",
+        "created": 1727211600,
+        "description": "Llama 70B is a large version of Llama 3.3 models with 70B parameters. This model is a deprecated version.",
+        "content_length": 8191,
+        "owned_by": "meta"
+    },
+    {
+        "id": "llama/rc",
+        "name": "Llama 70b (Release Candidate)",
+        "object": "model",
+        "created": 1727211600,
+        "description": "Llama 70B is a large version of Llama 3.3 models with 70B parameters. This model is a release candidate version.",
         "content_length": 8191,
         "owned_by": "meta"
     },

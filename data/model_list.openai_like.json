@@ -1,51 +1,57 @@
 [
     {
-        "id": "yandexgpt-32k/rc",
+        "id": "yandexgpt-32k/deprecated",
         "object": "model",
-        "created": 1732435200,
+        "created": 1740463200,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-32k/latest",
         "object": "model",
-        "created": 1732435200,
+        "created": 1740463200,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt/rc",
         "object": "model",
-        "created": 1732435200,
+        "created": 1740463200,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt/latest",
         "object": "model",
-        "created": 1732435200,
+        "created": 1740463200,
         "owned_by": "yandex"
     },
     {
-        "id": "yandexgpt/deprcecated",
+        "id": "yandexgpt/deprecated",  
         "object": "model",
-        "created": 1711612800,
+        "created": 1740463200, 
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-lite/rc",
         "object": "model",
-        "created": 1711612800,
+        "created": 1740463200,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-lite/latest",
         "object": "model",
-        "created": 1711612800,
+        "created": 1740463200,
         "owned_by": "yandex"
     },
     {
         "id": "yandexgpt-lite/deprecated",
         "object": "model",
-        "created": 1711612800,
+        "created": 1740463200,
         "owned_by": "yandex"
+    },
+    {
+        "id": "llama-lite/deprecated",
+        "object": "model",
+        "created": 1727211600,
+        "owned_by": "meta"
     },
     {
         "id": "llama-lite/latest",
@@ -54,7 +60,25 @@
         "owned_by": "meta"
     },
     {
+        "id": "llama-lite/rc",
+        "object": "model",
+        "created": 1727211600,
+        "owned_by": "meta"
+    },
+    {
+        "id": "llama/deprecated",
+        "object": "model",
+        "created": 1727211600,
+        "owned_by": "meta"
+    },
+    {
         "id": "llama/latest",
+        "object": "model",
+        "created": 1727211600,
+        "owned_by": "meta"
+    },
+    {
+        "id": "llama/rc",
         "object": "model",
         "created": 1727211600,
         "owned_by": "meta"
