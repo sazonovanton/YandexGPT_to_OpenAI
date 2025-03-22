@@ -145,11 +145,11 @@ async def log_requests(request: Request, call_next):
 class FunctionParameters(BaseModel):
     type: str
     properties: dict
-    required: Optional[List[str]]
+    required: Optional[List[str]] = []
 
 class FunctionDefinition(BaseModel):
     name: str
-    description: Optional[str]
+    description: Optional[str] = ""
     parameters: FunctionParameters
 
 class Tool(BaseModel):
@@ -178,6 +178,7 @@ async def chat_model_alias(model: str):
 @app.post("/chat/completions")
 async def chat_completions(chat_completions: ChatCompletions, auth: dict = Depends(authenticate_user)):
     logger.info(f"* User requested chat completion via model `{chat_completions.model}` (stream: {chat_completions.stream})")
+    logger.debug(f"Request payload: {json.dumps(chat_completions.model_dump())}")
     if chat_completions.stream:
         return StreamingResponse(stream_chat_completions(chat_completions, auth), media_type="text/event-stream")
     else:
@@ -209,6 +210,8 @@ async def stream_chat_completions(chat_completions: ChatCompletions, auth: dict)
         data["tools"] = [tool.model_dump() for tool in chat_completions.tools]
     if chat_completions.tool_choice:
         data["tool_choice"] = chat_completions.tool_choice
+
+    logger.debug(f"Request to YaGPT data: {json.dumps(data)}")
 
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
@@ -279,6 +282,8 @@ async def non_stream_chat_completions(chat_completions: ChatCompletions, auth: d
         data["tools"] = [tool.model_dump() for tool in chat_completions.tools]
     if chat_completions.tool_choice:
         data["tool_choice"] = chat_completions.tool_choice
+
+    logger.debug(f"Request to YaGPT data: {json.dumps(data)}")
 
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
