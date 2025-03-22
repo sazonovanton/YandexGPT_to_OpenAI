@@ -145,11 +145,11 @@ async def log_requests(request: Request, call_next):
 class FunctionParameters(BaseModel):
     type: str
     properties: dict
-    required: Optional[List[str]]
+    required: Optional[List[str]] = []
 
 class FunctionDefinition(BaseModel):
     name: str
-    description: Optional[str]
+    description: Optional[str] = ""
     parameters: FunctionParameters
 
 class Tool(BaseModel):
