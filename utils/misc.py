@@ -81,10 +81,11 @@ async def messages_translation(messages: list):
     - new_messages: list of messages in YandexGPT format
     """
     try:
+        tool_calls = {}
         new_messages = []
         for message in messages:
             new_message = {
-                "role": message["role"]
+                "role": "assistant" if message["role"] == "tool" else message["role"]
             }
 
             # Обработка обычного текстового сообщения
@@ -94,16 +95,18 @@ async def messages_translation(messages: list):
             # Обработка tool_calls (если есть)
             if "tool_calls" in message:
                 new_message["toolCallList"] = {
-                    "toolCalls": [
-                        {
-                            "functionCall": {
-                                "name": tool_call["function"]["name"],
-                                "arguments": tool_call["function"]["arguments"]
-                            }
-                        }
-                        for tool_call in message["tool_calls"]
-                    ]
+                    "toolCalls": []
                 }
+
+                for tool_call in message["tool_calls"]:
+                    tool_calls[tool_call['id']] = tool_call["function"]
+
+                    new_message["toolCallList"]["toolCalls"].append({
+                        "functionCall": {
+                            "name": tool_call["function"]["name"],
+                            "arguments": json.loads(tool_call["function"]["arguments"])
+                        }
+                    })
 
             # Обработка function_call (устаревший формат OpenAI)
             elif "function_call" in message:
@@ -117,11 +120,11 @@ async def messages_translation(messages: list):
                 }
 
             # Обработка результатов выполнения функций
-            if "function_name" in message and "content" in message:
+            if "tool_call_id" in message and "content" in message:
                 new_message["toolResultList"] = {
                     "toolResults": [{
                         "functionResult": {
-                            "name": message["function_name"],
+                            "name": tool_calls[message["tool_call_id"]]["name"],
                             "content": message["content"]
                         }
                     }]
