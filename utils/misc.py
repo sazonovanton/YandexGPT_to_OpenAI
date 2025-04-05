@@ -90,7 +90,10 @@ async def messages_translation(messages: list):
 
             # Обработка обычного текстового сообщения
             if "content" in message and message["content"] is not None:
-                new_message["text"] = message["content"]
+                if isinstance(message["content"], list):
+                    new_message["text"] = " ".join(item.get("text", "") for item in message["content"] if item.get("type") == "text")
+                else:
+                    new_message["text"] = message["content"]
 
             # Обработка tool_calls (если есть)
             if "tool_calls" in message:
